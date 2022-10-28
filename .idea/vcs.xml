@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Submodules/Vulkan-Hpp" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Submodules/Vulkan-Hpp/Vulkan-Headers" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Submodules/Vulkan-Hpp/glfw" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Submodules/Vulkan-Hpp/glm" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Submodules/Vulkan-Hpp/glslang" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Submodules/Vulkan-Hpp/tinyxml2" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Submodules/fmt" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Submodules/glfw" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Submodules/glm" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Submodules/imgui" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Submodules/spdlog" vcs="Git" />
+  </component>
+</project>
