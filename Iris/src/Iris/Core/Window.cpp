@@ -1,14 +1,14 @@
-#include "Iris/Core/Window.hpp"
+#include "Window.hpp"
 
 namespace Iris {
     static uint32_t windowCount = 0;
 
-    Window::Window(std::string_view title, glm::ivec2 size)
-            : m_Title(title), m_Size(size) {
+    Window::Window(const WindowOptions& opts)
+            : m_Title(opts.Title), m_Size(opts.Size) {
         if (windowCount == 0) {
             glfwInit();
         }
-
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         m_Window = glfwCreateWindow(m_Size.x, m_Size.y, m_Title.c_str(), nullptr, nullptr);
         ++windowCount;
 

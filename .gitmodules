@@ -17,3 +17,6 @@
 [submodule "Submodules/fmt"]
 	path = Submodules/fmt
 	url = https://github.com/fmtlib/fmt
+[submodule "Submodules/vk-bootstrap"]
+	path = Submodules/vk-bootstrap
+	url = https://github.com/charles-lunarg/vk-bootstrap

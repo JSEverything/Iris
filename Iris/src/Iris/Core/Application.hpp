@@ -1,5 +1,5 @@
 #pragma once
-#include "Iris/Core/Window.hpp"
+#include "Iris/Renderer/Renderer.hpp"
 
 int AppMain(const std::vector<std::string_view>& args);
 
@@ -27,7 +27,7 @@ namespace Iris {
     protected:
         ApplicationDetails m_Details;
         bool m_Running = true;
-        std::shared_ptr<Window> m_Window;
+        std::shared_ptr<Renderer> m_Renderer;
     private:
         static Application* s_Instance;
         friend int::AppMain(const std::vector<std::string_view>& args);

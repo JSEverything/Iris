@@ -10,7 +10,7 @@ namespace Iris {
         }
 
         void OnUpdate() override {
-            
+
         }
 
         ~Editor() override {

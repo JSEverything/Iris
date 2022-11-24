@@ -13,5 +13,6 @@
     <mapping directory="$PROJECT_DIR$/Submodules/glm" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Submodules/imgui" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Submodules/spdlog" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Submodules/vk-bootstrap" vcs="Git" />
   </component>
 </project>

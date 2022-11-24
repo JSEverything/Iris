@@ -2,8 +2,7 @@ add_subdirectory(glfw)
 add_subdirectory(glm)
 add_subdirectory(Vulkan-Hpp)
 add_subdirectory(fmt)
-
-set(SPDLOG_FMT_EXTERNAL 1)
+add_subdirectory(vk-bootstrap)
 add_subdirectory(spdlog)
 
 # ImGui
