@@ -28,6 +28,7 @@ namespace Iris {
         ApplicationDetails m_Details;
         bool m_Running = true;
         std::shared_ptr<Renderer> m_Renderer;
+        std::shared_ptr<Window> m_Window;
     private:
         static Application* s_Instance;
         friend int::AppMain(const std::vector<std::string_view>& args);

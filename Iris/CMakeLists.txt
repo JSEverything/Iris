@@ -12,6 +12,7 @@ target_link_libraries(Iris PUBLIC
         fmt::fmt
         spdlog::spdlog
         vk-bootstrap::vk-bootstrap
+        GLAD
         )
 target_precompile_headers(Iris PUBLIC src/pch.hpp)
 

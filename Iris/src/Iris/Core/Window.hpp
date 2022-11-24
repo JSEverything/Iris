@@ -1,4 +1,6 @@
 #pragma once
+#include "Iris/Renderer/Renderer.hpp"
+#include <glad/glad.h>
 #include "GLFW/glfw3.h"
 
 namespace Iris {
@@ -9,16 +11,16 @@ namespace Iris {
 
     class Window {
     public:
-        explicit Window(const WindowOptions& opts);
+        explicit Window(const WindowOptions& opts, RenderAPI api);
         ~Window();
 
         bool ShouldClose();
 
-        GLFWwindow* GetGLFWWindow() { return m_Window; }
+        [[nodiscard]] GLFWwindow* GetGLFWWindow() const { return m_Window; }
 
-        uint32_t GetWidth() { return m_Size.x; };
+        [[nodiscard]] uint32_t GetWidth() const { return m_Size.x; };
 
-        uint32_t GetHeight() { return m_Size.y; };
+        [[nodiscard]] uint32_t GetHeight() const { return m_Size.y; };
 
         [[nodiscard]] std::string_view GetTitle() const { return m_Title; };
     private:

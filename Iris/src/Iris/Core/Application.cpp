@@ -6,7 +6,8 @@ namespace Iris {
     Application::Application(ApplicationDetails details)
             : m_Details(std::move(details)) {
         s_Instance = this;
-        m_Renderer = Renderer::Create(RenderAPI::Vulkan, { m_Details.Name, m_Details.DesiredSize });
+        m_Window = std::make_shared<Window>(WindowOptions{ m_Details.Name, m_Details.DesiredSize }, RenderAPI::OpenGL);
+        m_Renderer = Renderer::Create(RenderAPI::OpenGL, m_Window);
         m_Renderer->Init();
     }
 
@@ -15,8 +16,10 @@ namespace Iris {
     void Application::Run() {
         while (m_Running) {
             glfwPollEvents();
-            if (m_Renderer->GetWindow().ShouldClose()) Close();
+            m_Renderer->Draw();
+            if (m_Window->ShouldClose()) Close();
             OnUpdate();
+            glfwSwapBuffers(m_Window->GetGLFWWindow());
         }
 
         m_Renderer->Cleanup();

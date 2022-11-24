@@ -4,6 +4,7 @@ add_subdirectory(Vulkan-Hpp)
 add_subdirectory(fmt)
 add_subdirectory(vk-bootstrap)
 add_subdirectory(spdlog)
+add_subdirectory(Glad)
 
 # ImGui
 set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/imgui)

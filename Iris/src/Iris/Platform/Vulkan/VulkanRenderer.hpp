@@ -6,10 +6,11 @@
 namespace Iris {
     class VulkanRenderer : public Renderer {
     public:
-        explicit VulkanRenderer(const WindowOptions& opts);
+        explicit VulkanRenderer(std::shared_ptr<Window> window);
         ~VulkanRenderer() override;
 
         void Init() override;
+        void Draw() override;
         void Cleanup() override;
     private:
         void InitDevice();
@@ -18,6 +19,10 @@ namespace Iris {
         void InitDepthBuffer();
         void InitRenderPass();
         void InitFramebuffers();
+        void InitCommandBuffers();
+        void InitSyncStructures();
+        void InitVertexBuffer();
+        void InitPipelines();
     private:
         vkb::Instance m_Instance;
         vk::SurfaceKHR m_Surface;
@@ -25,7 +30,7 @@ namespace Iris {
         vkb::Device m_Device;
         vk::Device m_Device2;
 
-        vk::Format m_SwapchainFormat;
+        vk::Format m_SwapchainFormat{};
         vk::SwapchainKHR m_Swapchain;
         vk::Extent2D m_SwapchainExtent;
         std::vector<vk::Image> m_SwapchainImages;
@@ -47,6 +52,17 @@ namespace Iris {
         vk::ImageView m_DepthImageView;
 
         vk::RenderPass m_MainRenderPass;
+
+        vk::CommandPool m_CommandPool;
+        vk::CommandBuffer m_CommandBuffer;
+
+        vk::Fence m_RenderFence;
+        vk::Semaphore m_RenderSemaphore;
+        vk::Semaphore m_PresentSemaphore;
+
+        vk::DescriptorSetLayout m_DescriptorSetLayout;
+        vk::PipelineLayout m_PipelineLayout;
+        vk::Pipeline m_Pipeline;
     };
 }
 
