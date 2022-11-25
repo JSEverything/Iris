@@ -8,7 +8,7 @@ add_subdirectory(Glad)
 
 # ImGui
 set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
-file(GLOB_RECURSE IMGUI_SRC ${IMGUI_DIR}/*.cpp)
+file(GLOB_RECURSE IMGUI_SRC ${IMGUI_DIR}/**.cpp)
 add_library(IMGUI STATIC)
 target_sources(IMGUI PRIVATE ${IMGUI_SRC})
 

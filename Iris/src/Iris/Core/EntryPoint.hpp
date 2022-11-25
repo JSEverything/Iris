@@ -1,5 +1,4 @@
 #pragma once
-#include "Iris/Core/Base.hpp"
 #include "Iris/Core/Application.hpp"
 
 #ifdef IRIS_PLATFORM_LINUX

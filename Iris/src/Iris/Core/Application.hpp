@@ -18,17 +18,13 @@ namespace Iris {
 
         [[nodiscard]] const ApplicationDetails& GetDetails() const { return m_Details; }
 
-        void Close() { m_Running = false; }
-
         static Application& Get() { return *s_Instance; }
 
     private:
         void Run();
     protected:
         ApplicationDetails m_Details;
-        bool m_Running = true;
-        std::shared_ptr<Renderer> m_Renderer;
-        std::shared_ptr<Window> m_Window;
+        std::vector<std::shared_ptr<Renderer>> m_Renderers;
     private:
         static Application* s_Instance;
         friend int::AppMain(const std::vector<std::string_view>& args);

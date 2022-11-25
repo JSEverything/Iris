@@ -1,5 +1,5 @@
 #pragma once
-#include "Iris/Renderer/Renderer.hpp"
+#include "Iris/Renderer/RenderAPI.hpp"
 #include <glad/glad.h>
 #include "GLFW/glfw3.h"
 
@@ -11,7 +11,7 @@ namespace Iris {
 
     class Window {
     public:
-        explicit Window(const WindowOptions& opts, RenderAPI api);
+        explicit Window(RenderAPI api, const WindowOptions& opts);
         ~Window();
 
         bool ShouldClose();
@@ -23,9 +23,12 @@ namespace Iris {
         [[nodiscard]] uint32_t GetHeight() const { return m_Size.y; };
 
         [[nodiscard]] std::string_view GetTitle() const { return m_Title; };
+
+        [[nodiscard]] RenderAPI GetAPI() const { return m_API; };
     private:
         GLFWwindow* m_Window;
         std::string m_Title;
         glm::ivec2 m_Size;
+        RenderAPI m_API;
     };
 }

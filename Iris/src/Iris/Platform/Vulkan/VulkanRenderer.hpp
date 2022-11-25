@@ -2,17 +2,17 @@
 #include "Iris/Renderer/Renderer.hpp"
 #include "vulkan/vulkan.hpp"
 #include "VkBootstrap.h"
+#include "Iris/Platform/Vulkan/VulkanBuffer.hpp"
 
 namespace Iris {
     class VulkanRenderer : public Renderer {
     public:
-        explicit VulkanRenderer(std::shared_ptr<Window> window);
-        ~VulkanRenderer() override;
-
+        explicit VulkanRenderer(const WindowOptions& opts);
+    private:
         void Init() override;
         void Draw() override;
         void Cleanup() override;
-    private:
+
         void InitDevice();
         void InitSwapchain();
         void InitQueues();
@@ -21,8 +21,10 @@ namespace Iris {
         void InitFramebuffers();
         void InitCommandBuffers();
         void InitSyncStructures();
+        void InitUniformBuffer();
         void InitVertexBuffer();
         void InitPipelines();
+        void InitDescriptorSet();
     private:
         vkb::Instance m_Instance;
         vk::SurfaceKHR m_Surface;
@@ -63,6 +65,13 @@ namespace Iris {
         vk::DescriptorSetLayout m_DescriptorSetLayout;
         vk::PipelineLayout m_PipelineLayout;
         vk::Pipeline m_Pipeline;
+
+        std::shared_ptr<VulkanBuffer> m_MVPCBuffer;
+
+        vk::DescriptorPool m_DescriptorPool;
+        vk::DescriptorSet m_DescriptorSet;
+
+        std::shared_ptr<VulkanBuffer> m_VertexBuffer;
     };
 }
 

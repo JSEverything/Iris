@@ -1,2 +1,3 @@
 #pragma once
-#include "Iris/Core/Base.hpp"
+
+#include "Iris/Core/Log.hpp"

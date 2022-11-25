@@ -1,8 +1,9 @@
 #pragma once
-#include "Iris/Core/Log.hpp"
+#include <vulkan/vulkan.hpp>
 
-static void VkCheck(VkResult result, std::string_view msg) {
-    if (result == VK_SUCCESS) return;
-    //Iris::Log::Core::Error("VkResult Error: {}\n", msg);
-    std::exit(1);
-}
+void VkCheck(VkResult result, std::string_view msg);
+
+void VkCheck(vk::Result result, std::string_view msg);
+
+uint32_t findMemoryType(vk::PhysicalDeviceMemoryProperties const& memoryProperties, uint32_t typeBits,
+                        vk::MemoryPropertyFlags requirementsMask);

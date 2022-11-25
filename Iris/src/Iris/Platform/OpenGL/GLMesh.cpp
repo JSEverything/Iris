@@ -30,7 +30,7 @@ namespace Iris {
         glBindVertexArray(0);
     }
 
-    void GLMesh::SetVertices(const std::vector<glm::vec3>& data) {
+    void GLMesh::SetVertices(const std::vector<glm::vec4>& data) {
         m_VerticesCount = data.size();
         SetAttribute(BufferType::Vertices, data);
     }

@@ -1,5 +1,8 @@
 #include "Iris/Core/EntryPoint.hpp"
 #include "Iris/Core/Application.hpp"
+#include <chrono>
+
+using namespace std::chrono_literals;
 
 namespace Iris {
     class Editor : public Application {
@@ -10,7 +13,7 @@ namespace Iris {
         }
 
         void OnUpdate() override {
-
+            std::this_thread::sleep_for(16ms);
         }
 
         ~Editor() override {

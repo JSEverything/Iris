@@ -16,7 +16,7 @@ namespace Iris {
 
         template <typename T>
         void SetAttribute(GLMesh::BufferType type, const std::vector<T>& data);
-        void SetVertices(const std::vector<glm::vec3>& data);
+        void SetVertices(const std::vector<glm::vec4>& data);
     private:
         std::map<BufferType, uint32_t> m_BufferObjects;
         GLenum m_PrimitiveType;
