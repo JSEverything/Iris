@@ -5,6 +5,7 @@ namespace Iris {
             : Renderer(RenderAPI::OpenGL, opts) {}
 
     void OpenGLRenderer::Init() {
+        glfwMakeContextCurrent(m_Window->GetGLFWWindow());
         glfwSwapInterval(1);
         gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
         Log::Core::Info("OpenGL {}.{}", GLVersion.major, GLVersion.minor);

@@ -34,8 +34,6 @@ namespace Iris {
         // VFT is created AFTER the constructor for some reason
         // The constructor needs to end execution before any function calls on 'this' work.
         std::this_thread::sleep_for(10ms);
-
-        glfwMakeContextCurrent(m_Window->GetGLFWWindow());
         Init();
 
         while (m_Running) {

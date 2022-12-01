@@ -2,12 +2,14 @@
 
 #include <cstdint>
 #include <utility>
+#include <optional>
 
 #include <string>
 #include <string_view>
 
 #include <vector>
 #include <array>
+#include <set>
 
 #include <memory>
 

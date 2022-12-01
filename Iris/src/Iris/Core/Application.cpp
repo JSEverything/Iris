@@ -7,6 +7,9 @@ namespace Iris {
             : m_Details(std::move(details)) {
         s_Instance = this;
         glfwInit();
+        glfwSetErrorCallback([](int error_code, const char* description){
+            Log::Core::Error("GLFW error code {}: {}", error_code, description);
+        });
         m_Renderers.push_back(Renderer::Create(RenderAPI::OpenGL,
                                                WindowOptions{ m_Details.Name + " [OpenGL]",
                                                               m_Details.DesiredSize }));
