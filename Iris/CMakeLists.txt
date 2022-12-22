@@ -18,6 +18,7 @@ target_link_libraries(Iris PUBLIC
         spdlog::spdlog
         vk-bootstrap::vk-bootstrap
         GLAD
+        tinyobjloader
         )
 target_precompile_headers(Iris PUBLIC src/pch.hpp)
 

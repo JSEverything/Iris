@@ -5,6 +5,7 @@ add_subdirectory(fmt)
 add_subdirectory(vk-bootstrap)
 add_subdirectory(spdlog)
 add_subdirectory(Glad)
+add_subdirectory(tinyobjloader)
 
 # ImGui
 set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/imgui)

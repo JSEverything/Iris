@@ -1,15 +1,20 @@
 #include "Renderer.hpp"
 #include "Iris/Platform/Vulkan/VulkanRenderer.hpp"
 #include "Iris/Platform/OpenGL/OpenGLRenderer.hpp"
+#include "Iris/Util/EventProxy.hpp"
 #include <chrono>
 
 using namespace std::chrono_literals;
 
 namespace Iris {
-    Renderer::Renderer(RenderAPI api, const WindowOptions& opts)
+    Renderer::Renderer(RenderAPI api, const WindowOptions& opts, const std::shared_ptr<Scene>& scene)
             : m_Window(std::move(std::make_shared<Window>(api, opts))),
-              m_Thread(std::move(std::thread(&Renderer::Run, this))) {
+              m_Thread(std::move(std::thread(&Renderer::Run, this))),
+              m_Scene(scene) {
         Log::Core::Info("Renderer {} created", m_Window->GetTitle());
+        m_Window->on<Key>([](int key, KeyMods keyMods){
+            EventProxy::Get().emit<Key>(key, keyMods);
+        });
     }
 
     Renderer::~Renderer() {
@@ -19,12 +24,12 @@ namespace Iris {
     }
 
     std::shared_ptr<Renderer>
-    Renderer::Create(RenderAPI api, const WindowOptions& opts) {
+    Renderer::Create(RenderAPI api, const WindowOptions& opts, const std::shared_ptr<Scene>& scene) {
         switch (api) {
             case RenderAPI::Vulkan:
-                return std::make_shared<VulkanRenderer>(opts);
+                return std::make_shared<VulkanRenderer>(opts, scene);
             case RenderAPI::OpenGL:
-                return std::make_shared<OpenGLRenderer>(opts);
+                return std::make_shared<OpenGLRenderer>(opts, scene);
             default:
                 return {};
         }

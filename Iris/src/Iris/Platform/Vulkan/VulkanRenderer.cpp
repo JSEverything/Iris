@@ -1,11 +1,12 @@
 #include "VulkanRenderer.hpp"
 #include "Iris/Renderer/Vertex.hpp"
+#include "Iris/Renderer/MVPC.hpp"
 #include "Iris/Platform/Vulkan/Util.hpp"
 #include <fstream>
 
 namespace Iris {
-    VulkanRenderer::VulkanRenderer(const WindowOptions& opts)
-            : Renderer(RenderAPI::Vulkan, opts) {
+    VulkanRenderer::VulkanRenderer(const WindowOptions& opts, const std::shared_ptr<Scene>& scene)
+            : Renderer(RenderAPI::Vulkan, opts, scene) {
     }
 
     void VulkanRenderer::Init() {
@@ -314,29 +315,40 @@ namespace Iris {
     }
 
     void VulkanRenderer::InitUniformBuffer() {
-        glm::mat4x4 model = glm::mat4x4(1.0f);
-        glm::mat4x4 view = glm::lookAt(glm::vec3(-5.0f, 3.0f, -10.0f), glm::vec3(0.0f, 0.0f, 0.0f),
-                                       glm::vec3(0.0f, -1.0f, 0.0f));
-        glm::mat4x4 projection = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 100.0f);
+        MVPC mvpc{};
+
+        mvpc.model = glm::rotate(glm::mat4{ 1.0f }, glm::degrees(180.f), glm::vec3(0, 1, 0));
+        mvpc.view = glm::lookAt(glm::vec3(0.0f, 0.0f, -2.4f), glm::vec3(0.0f, 0.0f, 0.0f),
+                                       glm::vec3(0.0f, 1.0f, 0.0f));
+        mvpc.projection = glm::perspective(glm::radians(60.0f), 1.0f, 0.1f, 100.0f);
         // clang-format off
-        glm::mat4x4 clip = glm::mat4x4(1.0f, 0.0f, 0.0f, 0.0f,
+        mvpc.clip = glm::mat4x4(1.0f, 0.0f, 0.0f, 0.0f,
                                        0.0f, -1.0f, 0.0f, 0.0f,
                                        0.0f, 0.0f, 0.5f, 0.0f,
                                        0.0f, 0.0f, 0.5f, 1.0f);  // vulkan clip space has inverted y and half z !
         // clang-format on
-        glm::mat4x4 mvpc = clip * projection * view * model;
 
         m_MVPCBuffer = std::make_shared<VulkanBuffer>(m_Device2, m_PhysicalDevice,
                                                       vk::BufferUsageFlagBits::eUniformBuffer, sizeof(mvpc), &mvpc);
     }
 
     void VulkanRenderer::InitVertexBuffer() {
-        std::vector<glm::vec4> vertices = { { 1.f,  1.f,  0.f, 1.f },
-                                            { -1.f, 1.f,  0.f, 1.f },
-                                            { 0.f,  -1.f, 0.f, 1.f } };
+        std::vector<Vertex> vertices = { {
+                                                 { -1.f, -1.f, 0.f, 1.f },
+                                                 { 1.f, 0.f, 0.f, 1.f },
+                                                 { 0.f, 0.f, 0.f, 1.f }
+                                         }, {
+                                                 { 1.f,  -1.f, 0.f, 1.f },
+                                                 { 0.f,  1.f, 0.f, 1.f },
+                                                 { 0.f,  0.f, 0.f, 1.f }
+                                         }, {
+                                                 { 0.f,  1.f,  0.f, 1.f },
+                                                 { 0.f,  0.f,  1.f, 1.f },
+                                                 { 0.f,  0.f,  0.f, 1.f }
+                                         } };
         m_VertexBuffer = std::make_shared<VulkanBuffer>(m_Device2, m_PhysicalDevice,
                                                         vk::BufferUsageFlagBits::eVertexBuffer,
-                                                        vertices.size() * sizeof(glm::vec4), vertices.data());
+                                                        vertices.size() * sizeof(Vertex), vertices.data());
     }
 
     void VulkanRenderer::InitPipelines() {
@@ -368,8 +380,8 @@ namespace Iris {
 
         vk::ShaderModule triVert, triFrag;
         try {
-            triVert = loadShaderModule("./Shaders/simple.vert.spv");
-            triFrag = loadShaderModule("./Shaders/simple.frag.spv");
+            triVert = loadShaderModule("./Shaders/trianglemvpc.vert.spv");
+            triFrag = loadShaderModule("./Shaders/triangle.frag.spv");
         } catch (std::string_view& e) {
             Log::Core::Critical("%s", e.data());
             std::exit(1);
@@ -382,11 +394,11 @@ namespace Iris {
                                                   vk::ShaderStageFlagBits::eFragment, triFrag, "main")
         };
 
-        vk::VertexInputBindingDescription vertexInputBindingDescription(0, sizeof(glm::vec4));
-        std::array<vk::VertexInputAttributeDescription, 1> vertexInputAttributeDescriptions = {
+        vk::VertexInputBindingDescription vertexInputBindingDescription(0, sizeof(Vertex));
+        std::array<vk::VertexInputAttributeDescription, 3> vertexInputAttributeDescriptions = {
                 vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32B32A32Sfloat, 0),
-                //vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32A32Sfloat, 16),
-                //vk::VertexInputAttributeDescription(2, 0, vk::Format::eR32G32B32A32Sfloat, 32)
+                vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32A32Sfloat, 16),
+                vk::VertexInputAttributeDescription(2, 0, vk::Format::eR32G32B32A32Sfloat, 32)
         };
         vk::PipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo(
                 vk::PipelineVertexInputStateCreateFlags(),  // flags
@@ -549,8 +561,23 @@ namespace Iris {
         VkCheck(m_Device2.resetFences(1, &m_RenderFence), "Reset Draw Fence");
 
         const float pi3 = std::numbers::pi / 3;
-        glm::vec3 color = abs(glm::sin(
+        glm::vec3 color = glm::abs(glm::sin(
                 glm::vec3(static_cast<float>(m_FrameNr) / 10.f) / glm::vec3(120.f) + glm::vec3(0.f, pi3, 2 * pi3)));
+
+        auto* verts = (Vertex*)m_VertexBuffer->Map();
+        for (uint32_t i = 0; i < 3; ++i) {
+            auto& vert = verts[i];
+            vert.color = glm::vec4(glm::abs(glm::sin(
+                    glm::vec3(static_cast<float>(m_FrameNr + (i * 100)) / glm::vec3(120.f) + glm::vec3(0.f, pi3, 2 * pi3)))), 1.f);
+        }
+        m_VertexBuffer->Unmap();
+
+        if (m_CameraEntityId != -1) {
+            auto transform = m_Scene->GetEntity(m_CameraEntityId).GetTransform();
+            auto* mvpc = (MVPC*)m_MVPCBuffer->Map();
+            mvpc->view = glm::translate(glm::mat4(1.f), transform.GetTranslation());
+            m_MVPCBuffer->Unmap();
+        }
 
         vk::ResultValue<uint32_t> currentBuffer = m_Device2
                 .acquireNextImageKHR(m_Swapchain, 100000000, m_PresentSemaphore, nullptr);
@@ -565,17 +592,18 @@ namespace Iris {
                 vk::Rect2D(vk::Offset2D(0, 0), extent), clearValues);
 
         m_CommandBuffer.beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
-        m_CommandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline);
-        m_CommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_PipelineLayout, 0, m_DescriptorSet,
-                                           nullptr);
-
-        m_CommandBuffer.bindVertexBuffers(0, m_VertexBuffer->m_Buffer, { 0 });
         m_CommandBuffer.setViewport(
                 0, vk::Viewport(0.0f, 0.0f, static_cast<float>(extent.width),
                                 static_cast<float>(extent.height), 0.0f, 1.0f));
         m_CommandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), extent));
 
+        m_CommandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Pipeline);
+        m_CommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_PipelineLayout, 0, m_DescriptorSet,
+                                           nullptr);
+
+        m_CommandBuffer.bindVertexBuffers(0, m_VertexBuffer->m_Buffer, { 0 });
         m_CommandBuffer.draw(3, 1, 0, 0);
+
         m_CommandBuffer.endRenderPass();
         m_CommandBuffer.end();
 

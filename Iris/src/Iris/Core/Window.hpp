@@ -1,5 +1,6 @@
 #pragma once
 #include "Iris/Renderer/RenderAPI.hpp"
+#include "Iris/Util/EventEmitter.hpp"
 #include <glad/glad.h>
 #include "GLFW/glfw3.h"
 
@@ -8,8 +9,45 @@ namespace Iris {
         std::string_view Title;
         glm::ivec2 Size;
     };
+    struct KeyMods {
+        bool SHIFT;
+        bool CONTROL;
+        bool ALT;
+        bool SUPER;
+        bool CAPS_LOCK;
+        bool NUM_LOCK;
 
-    class Window {
+        explicit KeyMods(int mods) {
+            SHIFT = mods & GLFW_MOD_SHIFT;
+            CONTROL = mods & GLFW_MOD_CONTROL;
+            ALT = mods & GLFW_MOD_ALT;
+            SUPER = mods & GLFW_MOD_SUPER;
+            CAPS_LOCK = mods & GLFW_MOD_CAPS_LOCK;
+            NUM_LOCK = mods & GLFW_MOD_NUM_LOCK;
+        };
+    };
+
+    struct WindowClose final : public EventHandler<> {
+    };
+    struct WindowResize final : public EventHandler<uint32_t, uint32_t> {
+    };
+    struct Key final : public EventHandler<int, KeyMods> {
+    };
+    struct KeyPress final : public EventHandler<int, KeyMods> {
+    };
+    struct KeyRelease final : public EventHandler<int, KeyMods> {
+    };
+    struct KeyRepeat final : public EventHandler<int, KeyMods> {
+    };
+
+    class Window : public EventEmitter<
+            WindowClose,
+            WindowResize,
+            Key,
+            KeyPress,
+            KeyRelease,
+            KeyRepeat
+    > {
     public:
         explicit Window(RenderAPI api, const WindowOptions& opts);
         ~Window();

@@ -1,5 +1,6 @@
 #include "GLShaderProgram.hpp"
 #include <fstream>
+#include <glm/gtc/type_ptr.hpp>
 
 namespace Iris {
     bool checkShaderStatus(GLuint shader)
@@ -54,6 +55,8 @@ namespace Iris {
         glShaderSource(shader, 1, sources, nullptr);
 
         glCompileShader(shader);
+        //glShaderBinary(1, &shader, GL_SHADER_BINARY_FORMAT_SPIR_V, code.c_str(), static_cast<GLint>(code.size()));
+        //        glSpecializeShader(shader, "main", 0, nullptr, nullptr);
 
         if(checkShaderStatus(shader)) {
             glAttachShader(m_ShaderProgram, shader);
@@ -76,5 +79,23 @@ namespace Iris {
 
     void GLShaderProgram::Use() const {
         glUseProgram(m_ShaderProgram);
+    }
+
+    void GLShaderProgram::SetUniform(std::string_view name, const glm::vec3& data) {
+        GLint location = glGetUniformLocation(m_ShaderProgram, name.data());
+        if (location == -1) return;
+        glUniform3f(location, data.x, data.y, data.z);
+    }
+
+    void GLShaderProgram::SetUniform(std::string_view name, const glm::mat4x4& data) {
+        GLint location = glGetUniformLocation(m_ShaderProgram, name.data());
+        if (location == -1) return;
+        glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(data));
+    }
+
+    void GLShaderProgram::SetUniform(std::string_view name, const float& data) {
+        GLint location = glGetUniformLocation(m_ShaderProgram, name.data());
+        if (location == -1) return;
+        glUniform1f(location, data);
     }
 }

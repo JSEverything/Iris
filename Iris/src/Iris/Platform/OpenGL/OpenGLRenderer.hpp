@@ -6,16 +6,17 @@
 namespace Iris {
     class OpenGLRenderer : public Renderer {
     public:
-        explicit OpenGLRenderer(const WindowOptions& opts);
+        OpenGLRenderer(const WindowOptions& opts, const std::shared_ptr<Scene>& scene);
     private:
         void Init() override;
         void Draw() override;
         void Cleanup() override;
 
         void LoadShaders();
-        void LoadTriangle();
     private:
-        std::shared_ptr<GLMesh> m_Triangle{};
         std::shared_ptr<GLShaderProgram> m_ShaderProgram{};
+        std::vector<GLMesh> m_Meshes;
+        std::vector<size_t> m_EntityQueue;
+        std::mutex m_QueueMutex;
     };
 }

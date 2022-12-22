@@ -25,6 +25,7 @@ namespace Iris {
     protected:
         ApplicationDetails m_Details;
         std::vector<std::shared_ptr<Renderer>> m_Renderers;
+        std::shared_ptr<Scene> m_Scene = std::make_shared<Scene>();
     private:
         static Application* s_Instance;
         friend int::AppMain(const std::vector<std::string_view>& args);

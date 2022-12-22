@@ -1,20 +1,26 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-layout (location = 0) in vec4 position;
-layout (location = 1) in vec4 color;
-layout (location = 2) in vec4 normal;
+layout (location = 0) in vec4 inPosition;
+layout (location = 1) in vec4 inColor;
+layout (location = 2) in vec4 inNormal;
 
 layout (location = 0) out vec3 outColor;
 layout (location = 1) out vec3 outNormal;
 
-vec2 positions[3] = vec2[](vec2 (0.0, -0.5), vec2 (0.5, 0.5), vec2 (-0.5, 0.5));
-
-vec3 colors[3] = vec3[](vec3 (1.0, 0.0, 0.0), vec3 (0.0, 1.0, 0.0), vec3 (0.0, 0.0, 1.0));
+layout (binding = 0) uniform model {
+    mat4 model1;
+};
+layout (binding = 1) uniform view {
+    mat4 view1;
+};
+layout (binding = 2) uniform projection {
+    mat4 projection1;
+};
 
 void main ()
 {
-    gl_Position = position;
-    outColor = vec3(color);
-    outNormal = vec3(normal);
+    gl_Position = projection1 * view1 * model1 * vec4(inPosition.xyz, 1.0f);
+    outColor = vec3(inColor);
+    outNormal = vec3(inNormal);
 }

@@ -20,3 +20,6 @@
 [submodule "Submodules/vk-bootstrap"]
 	path = Submodules/vk-bootstrap
 	url = https://github.com/charles-lunarg/vk-bootstrap
+[submodule "Submodules/tinyobjloader"]
+	path = Submodules/tinyobjloader
+	url = https://github.com/tinyobjloader/tinyobjloader.git

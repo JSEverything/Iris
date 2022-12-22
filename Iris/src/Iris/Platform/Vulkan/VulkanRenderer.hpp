@@ -7,7 +7,7 @@
 namespace Iris {
     class VulkanRenderer : public Renderer {
     public:
-        explicit VulkanRenderer(const WindowOptions& opts);
+        explicit VulkanRenderer(const WindowOptions& opts, const std::shared_ptr<Scene>& scene);
     private:
         void Init() override;
         void Draw() override;

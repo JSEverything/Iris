@@ -10,6 +10,9 @@ namespace Iris {
 
         [[nodiscard]] vk::DescriptorBufferInfo GetDescriptorBufferInfo() const;
 
+        void* Map();
+        void Unmap();
+
         ~VulkanBuffer();
 
     public:
@@ -18,6 +21,6 @@ namespace Iris {
         const vk::Device& m_Device;
         size_t m_Size;
         vk::DeviceMemory m_Memory;
-
+        vk::MemoryRequirements m_MemoryRequirements;
     };
 }

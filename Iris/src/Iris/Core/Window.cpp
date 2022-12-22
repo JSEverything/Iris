@@ -1,6 +1,12 @@
 #include "Window.hpp"
 
 namespace Iris {
+    enum class KeyAction : int {
+        PRESS = GLFW_PRESS,
+        RELEASE = GLFW_RELEASE,
+        REPEAT = GLFW_REPEAT,
+    };
+
     Window::Window(RenderAPI api, const WindowOptions& opts)
             : m_Title(opts.Title), m_Size(opts.Size), m_API(api) {
         if (m_API == RenderAPI::OpenGL) {
@@ -16,13 +22,30 @@ namespace Iris {
         glfwSetWindowUserPointer(m_Window, this);
 
         glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* GLFWWindow, int width, int height) {
-            Window& that = *(Window*)glfwGetWindowUserPointer(GLFWWindow);
-            //that.emit(EventType::WindowResize, width, height);
+            auto* that = static_cast<Window*>(glfwGetWindowUserPointer(GLFWWindow));
+            that->emit<WindowResize>(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
         });
 
         glfwSetWindowCloseCallback(m_Window, [](GLFWwindow* GLFWWindow) {
-            Window& that = *(Window*)glfwGetWindowUserPointer(GLFWWindow);
-            //that.emit(EventType::WindowClose);
+            auto* that = static_cast<Window*>(glfwGetWindowUserPointer(GLFWWindow));
+            that->emit<WindowClose>();
+        });
+
+        glfwSetKeyCallback(m_Window, [](GLFWwindow* GLFWWindow, int key, int scancode, int action, int mods) {
+            auto* that = static_cast<Window*>(glfwGetWindowUserPointer(GLFWWindow));
+            switch (static_cast<KeyAction>(action)) {
+                case KeyAction::PRESS:
+                    that->emit<KeyPress>(key, KeyMods(mods));
+                    that->emit<Key>(key, KeyMods(mods));
+                    break;
+                case KeyAction::RELEASE:
+                    that->emit<KeyRelease>(key, KeyMods(mods));
+                    break;
+                case KeyAction::REPEAT:
+                    that->emit<KeyRepeat>(key, KeyMods(mods));
+                    that->emit<Key>(key, KeyMods(mods));
+                    break;
+            }
         });
     }
 
