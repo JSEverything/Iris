@@ -9,6 +9,7 @@ namespace Iris {
         [[nodiscard]] const glm::vec3& GetTranslation() const;
         [[nodiscard]] const glm::vec3& GetRotation() const;
         [[nodiscard]] const glm::vec3& GetScale() const;
+        [[nodiscard]] glm::mat4 GetMatrix() const;
 
         void SetTranslation(const glm::vec3& translation);
         void SetRotation(const glm::vec3& rotation);

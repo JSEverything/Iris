@@ -69,11 +69,6 @@ namespace Iris {
     }
 
     glm::mat4 Mesh::GetModelMatrix() const {
-        auto& transform = m_Scene->GetEntity(m_ParentId).GetTransform();
-        auto mat = glm::translate(glm::scale(glm::mat4(1.f), transform.GetScale()), transform.GetTranslation());
-        mat = glm::rotate(mat, transform.GetRotation().x, { 1.f, 0.f, 0.f });
-        mat = glm::rotate(mat, transform.GetRotation().y, { 0.f, 1.f, 0.f });
-        mat = glm::rotate(mat, transform.GetRotation().z, { 0.f, 0.f, 1.f });
-        return mat;
+        return m_Scene->GetEntity(m_ParentId).GetTransform().GetMatrix();
     }
 }

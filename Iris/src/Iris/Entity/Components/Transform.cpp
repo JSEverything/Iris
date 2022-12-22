@@ -1,5 +1,8 @@
 #include "Transform.hpp"
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/quaternion.hpp>
+
 namespace Iris {
     const glm::vec3& Transform::GetTranslation() const {
         return m_Translation;
@@ -11,6 +14,12 @@ namespace Iris {
 
     const glm::vec3& Transform::GetScale() const {
         return m_Scale;
+    }
+
+    glm::mat4 Transform::GetMatrix() const {
+        return glm::scale(
+                glm::translate(glm::mat4(1.f), m_Translation) * glm::toMat4(glm::quat(glm::radians(m_Rotation))),
+                m_Scale);
     }
 
     void Transform::SetTranslation(const glm::vec3& translation) {
