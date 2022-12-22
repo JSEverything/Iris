@@ -9,7 +9,7 @@ namespace Iris {
     class Camera final : public Component {
     public:
         Camera(size_t parentId, const std::shared_ptr<Scene>& scene, float fov = 90.f, float aspect = 1600.f / 900.f,
-               float nearClip = 0.0001f, float farClip = 100000.f);
+               float nearClip = 0.1f, float farClip = 1000.f);
 
         void SetViewportSize(glm::vec2 size);
         void Update(float dt) override;
