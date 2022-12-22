@@ -8,16 +8,19 @@ namespace Iris {
 
         [[nodiscard]] const glm::vec3& GetTranslation() const;
         [[nodiscard]] const glm::vec3& GetRotation() const;
+        [[nodiscard]] const glm::vec3& GetScale() const;
 
-        void SetTranslation(const glm::vec3& mTranslation);
-        void SetRotation(const glm::vec3& mRotation);
+        void SetTranslation(const glm::vec3& translation);
+        void SetRotation(const glm::vec3& rotation);
+        void SetScale(const glm::vec3& scale);
 
         void Move(const glm::vec3& offset);
         void Rotate(const glm::vec3& offset);
 
         void Reset();
     private:
-        glm::vec3 m_Translation{};
-        glm::vec3 m_Rotation{};
+        glm::vec3 m_Translation{ 0.f };
+        glm::vec3 m_Rotation{ 0.f };
+        glm::vec3 m_Scale{ 1.f };
     };
 }

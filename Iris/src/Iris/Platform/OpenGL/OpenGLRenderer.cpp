@@ -3,7 +3,7 @@
 namespace Iris {
     OpenGLRenderer::OpenGLRenderer(const WindowOptions& opts, const std::shared_ptr<Scene>& scene)
             : Renderer(RenderAPI::OpenGL, opts, scene) {
-        scene->on<ObjectAdd>([this](uint32_t entityId){
+        scene->on<ObjectAdd>([this](uint32_t entityId) {
             if (!m_Scene->GetEntity(entityId).GetComponents<Mesh>().empty()) {
                 std::scoped_lock l(m_QueueMutex);
                 m_EntityQueue.emplace_back(entityId);
@@ -35,7 +35,7 @@ namespace Iris {
         m_ShaderProgram->SetUniform("lightPos", glm::vec3(0.f, 6.f, 0.f));
 
         m_ShaderProgram->SetUniform("model", glm::rotate(glm::mat4{ 1.0f }, glm::degrees(180.f), glm::vec3(0, 1, 0)));
-        m_ShaderProgram->SetUniform("view", glm::translate(glm::mat4(1.f), {0, 0, 0}));
+        m_ShaderProgram->SetUniform("view", glm::translate(glm::mat4(1.f), { 0, 0, 0 }));
         m_ShaderProgram
                 ->SetUniform("projection", glm::perspective(glm::radians(90.0f), 1600.f / 900.f, 0.0001f, 10000.0f));
         m_ShaderProgram->SetUniform("matAmbient", glm::vec3(0.0215f, 0.1745f, 0.0215f));
@@ -48,7 +48,7 @@ namespace Iris {
         if (!m_EntityQueue.empty()) {
             std::scoped_lock l(m_QueueMutex);
             for (uint32_t i = 0; i < m_EntityQueue.size(); ++i) {
-                for (auto& mesh : m_Scene->GetEntity(m_EntityQueue[i]).GetComponents<Mesh>()) {
+                for (auto& mesh: m_Scene->GetEntity(m_EntityQueue[i]).GetComponents<Mesh>()) {
                     auto temp = GLMesh(GL_TRIANGLES, m_EntityQueue[i]);
                     temp.SetVertices(mesh.GetVertices());
                     temp.SetIndices(mesh.GetIndices());
@@ -65,8 +65,13 @@ namespace Iris {
         glClearColor(color.r, color.g, color.b, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         if (m_CameraEntityId != -1) {
-            m_ShaderProgram->SetUniform("view", m_Scene->GetEntity(m_CameraEntityId).GetComponent<Camera>().GetViewMatrix());
-            m_ShaderProgram->SetUniform("cameraPos", m_Scene->GetEntity(m_CameraEntityId).GetTransform().GetTranslation());
+            m_ShaderProgram->SetUniform("view", m_Scene->GetEntity(m_CameraEntityId).GetComponent<Camera>()
+                    .GetViewMatrix());
+            m_ShaderProgram
+                    ->SetUniform("projection", m_Scene->GetEntity(m_CameraEntityId).GetComponent<Camera>()
+                            .GetProjectionMatrix());
+            m_ShaderProgram
+                    ->SetUniform("cameraPos", m_Scene->GetEntity(m_CameraEntityId).GetTransform().GetTranslation());
         }
 
         /*for (uint32_t i = 0; i < vertices.size(); ++i) {
@@ -78,9 +83,11 @@ namespace Iris {
         m_Triangle->SetVertices(vertices);*/
 
         m_ShaderProgram->Use();
-        for (GLMesh& obj : m_Meshes) {
-            m_ShaderProgram->SetUniform("model", m_Scene->GetEntity(obj.GetParentId()).GetComponent<Mesh>().GetModelMatrix());
-            m_ShaderProgram->SetUniform("modelPos", m_Scene->GetEntity(obj.GetParentId()).GetTransform().GetTranslation());
+        for (GLMesh& obj: m_Meshes) {
+            m_ShaderProgram
+                    ->SetUniform("model", m_Scene->GetEntity(obj.GetParentId()).GetComponent<Mesh>().GetModelMatrix());
+            m_ShaderProgram
+                    ->SetUniform("modelPos", m_Scene->GetEntity(obj.GetParentId()).GetTransform().GetTranslation());
             obj.Render();
         }
     }

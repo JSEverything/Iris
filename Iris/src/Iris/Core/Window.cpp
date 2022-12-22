@@ -1,4 +1,5 @@
 #include "Window.hpp"
+#include "Iris/Util/Input.hpp"
 
 namespace Iris {
     enum class KeyAction : int {
@@ -19,6 +20,10 @@ namespace Iris {
         glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
         m_Window = glfwCreateWindow(m_Size.x, m_Size.y, m_Title.c_str(), nullptr, nullptr);
 
+        double x, y;
+        glfwGetCursorPos(m_Window, &x, &y);
+        m_PreviousCursorPos = { x, y };
+
         glfwSetWindowUserPointer(m_Window, this);
 
         glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* GLFWWindow, int width, int height) {
@@ -32,20 +37,50 @@ namespace Iris {
         });
 
         glfwSetKeyCallback(m_Window, [](GLFWwindow* GLFWWindow, int key, int scancode, int action, int mods) {
-            auto* that = static_cast<Window*>(glfwGetWindowUserPointer(GLFWWindow));
+            auto input = Input::Get();
             switch (static_cast<KeyAction>(action)) {
                 case KeyAction::PRESS:
-                    that->emit<KeyPress>(key, KeyMods(mods));
-                    that->emit<Key>(key, KeyMods(mods));
+                    input.emit<KeyPress>(key, KeyMods(mods));
+                    input.emit<Key>(key, KeyMods(mods));
                     break;
                 case KeyAction::RELEASE:
-                    that->emit<KeyRelease>(key, KeyMods(mods));
+                    input.emit<KeyRelease>(key, KeyMods(mods));
                     break;
                 case KeyAction::REPEAT:
-                    that->emit<KeyRepeat>(key, KeyMods(mods));
-                    that->emit<Key>(key, KeyMods(mods));
+                    input.emit<KeyRepeat>(key, KeyMods(mods));
+                    input.emit<Key>(key, KeyMods(mods));
                     break;
             }
+        });
+
+        glfwSetMouseButtonCallback(m_Window, [](GLFWwindow* GLFWWindow, int button, int action, int mods) {
+            auto input = Input::Get();
+            switch (static_cast<KeyAction>(action)) {
+                case KeyAction::PRESS:
+                    input.emit<KeyPress>(button, KeyMods(mods));
+                    input.emit<Key>(button, KeyMods(mods));
+                    break;
+                case KeyAction::RELEASE:
+                    input.emit<KeyRelease>(button, KeyMods(mods));
+                    break;
+                case KeyAction::REPEAT:
+                    input.emit<KeyRepeat>(button, KeyMods(mods));
+                    input.emit<Key>(button, KeyMods(mods));
+                    break;
+            }
+        });
+
+        glfwSetCursorPosCallback(m_Window, [](GLFWwindow* GLFWWindow, double x, double y) {
+            auto* that = static_cast<Window*>(glfwGetWindowUserPointer(GLFWWindow));
+            auto input = Input::Get();
+            input.emit<MouseMove>(that->m_PreviousCursorPos - glm::vec2{ x, y });
+            that->m_PreviousCursorPos = { x, y };
+            input.emit<MousePosition>(glm::vec2{ x, y });
+        });
+
+        glfwSetScrollCallback(m_Window, [](GLFWwindow* GLFWWindow, double x, double y) {
+            auto input = Input::Get();
+            input.emit<MouseScroll>(glm::vec2(x, y));
         });
     }
 

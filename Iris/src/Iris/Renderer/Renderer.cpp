@@ -1,7 +1,7 @@
 #include "Renderer.hpp"
 #include "Iris/Platform/Vulkan/VulkanRenderer.hpp"
 #include "Iris/Platform/OpenGL/OpenGLRenderer.hpp"
-#include "Iris/Util/EventProxy.hpp"
+#include "Iris/Util/Input.hpp"
 #include <chrono>
 
 using namespace std::chrono_literals;
@@ -12,9 +12,6 @@ namespace Iris {
               m_Thread(std::move(std::thread(&Renderer::Run, this))),
               m_Scene(scene) {
         Log::Core::Info("Renderer {} created", m_Window->GetTitle());
-        m_Window->on<Key>([](int key, KeyMods keyMods){
-            EventProxy::Get().emit<Key>(key, keyMods);
-        });
     }
 
     Renderer::~Renderer() {

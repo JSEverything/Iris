@@ -14,7 +14,7 @@ namespace Iris {
     public:
         explicit Application(ApplicationDetails details);
         virtual ~Application();
-        virtual void OnUpdate() = 0;
+        virtual void OnUpdate(float dt) = 0;
 
         [[nodiscard]] const ApplicationDetails& GetDetails() const { return m_Details; }
 
@@ -26,6 +26,7 @@ namespace Iris {
         ApplicationDetails m_Details;
         std::vector<std::shared_ptr<Renderer>> m_Renderers;
         std::shared_ptr<Scene> m_Scene = std::make_shared<Scene>();
+        std::chrono::time_point<std::chrono::high_resolution_clock, std::chrono::duration<double>> m_LastFrameFinished;
     private:
         static Application* s_Instance;
         friend int::AppMain(const std::vector<std::string_view>& args);

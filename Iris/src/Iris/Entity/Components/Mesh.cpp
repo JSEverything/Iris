@@ -1,4 +1,5 @@
 #include "Mesh.hpp"
+
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 #include "Iris/Scene/Scene.hpp"
@@ -45,17 +46,17 @@ namespace Iris {
             float cb = attrib.colors[i * 3 + 2];
 
             m_Vertices.emplace_back(Vertex{
-                .position = {px, py, pz, 0.f},
-                .color = {cr, cg, cb, 1.f},
-                .normal = {0.f, 0.f, 0.f, 1.f}});
+                    .position = { px, py, pz, 0.f },
+                    .color = { cr, cg, cb, 1.f },
+                    .normal = { 0.f, 0.f, 0.f, 1.f } });
         }
 
-        for (auto idx : shapes[0].mesh.indices) {
+        for (auto idx: shapes[0].mesh.indices) {
             m_Indices.push_back(idx.vertex_index);
             float nx = attrib.normals[idx.normal_index * 3];
             float ny = attrib.normals[idx.normal_index * 3 + 1];
             float nz = attrib.normals[idx.normal_index * 3 + 2];
-            m_Vertices[idx.vertex_index].normal = {nx, ny, nz, 1.f};
+            m_Vertices[idx.vertex_index].normal = { nx, ny, nz, 1.f };
         }
     }
 
@@ -69,10 +70,10 @@ namespace Iris {
 
     glm::mat4 Mesh::GetModelMatrix() const {
         auto& transform = m_Scene->GetEntity(m_ParentId).GetTransform();
-        auto mat = glm::translate(glm::mat4(1.f), transform.GetTranslation());
-        mat = glm::rotate(mat, transform.GetRotation().x, {1.f, 0.f, 0.f});
-        mat = glm::rotate(mat, transform.GetRotation().y, {0.f, 1.f, 0.f});
-        mat = glm::rotate(mat, transform.GetRotation().z, {0.f, 0.f, 1.f});
+        auto mat = glm::translate(glm::scale(glm::mat4(1.f), transform.GetScale()), transform.GetTranslation());
+        mat = glm::rotate(mat, transform.GetRotation().x, { 1.f, 0.f, 0.f });
+        mat = glm::rotate(mat, transform.GetRotation().y, { 0.f, 1.f, 0.f });
+        mat = glm::rotate(mat, transform.GetRotation().z, { 0.f, 0.f, 1.f });
         return mat;
     }
 }

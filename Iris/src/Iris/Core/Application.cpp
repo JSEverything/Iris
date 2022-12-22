@@ -2,6 +2,8 @@
 #include "Iris/Entity/Entity.hpp"
 #include "Iris/Entity/Components/Mesh.hpp"
 
+using namespace std::chrono_literals;
+
 namespace Iris {
     Application* Application::s_Instance = nullptr;
 
@@ -17,18 +19,7 @@ namespace Iris {
         //                                          WindowOptions{ m_Details.Name + " [Vulkan]",
         //                                                         m_Details.DesiredSize }, m_Scene));
 
-        auto& camera = m_Scene->CreateObject();
-        camera.AddComponent<Camera>();
-        camera.GetTransform().Move({0.f, 0.f, 0.f});
-        camera.GetTransform().Rotate({0.f, 0.f, 0.f});
-        m_Scene->AddObject(camera);
-
-        for (uint32_t i = 0; i < 6; ++i) {
-            auto& monkey = m_Scene->CreateObject();
-            monkey.AddComponent<Mesh>("../Assets/monkey-hd.obj");
-            monkey.GetTransform().Move({(float)i * 3.f - 7.5f, glm::sin((float)i / 5.f * 3.14f * 2.5f) * 3.f, -5.f});
-            m_Scene->AddObject(monkey);
-        }
+        m_LastFrameFinished = std::chrono::high_resolution_clock::now();
     }
 
     Application::~Application() {
@@ -39,11 +30,12 @@ namespace Iris {
     void Application::Run() {
         while (!m_Renderers.empty()) {
             glfwPollEvents();
-            m_Scene->Update(16.667f);
-            OnUpdate();
-            for (uint32_t i = 1; i < 7; ++i) {
-                m_Scene->GetEntity(i).GetTransform().Rotate({(float)i * 0.01f, (float)i * 0.02f, 0.f});
-            }
+            auto frameDuration = std::chrono::high_resolution_clock::now() - m_LastFrameFinished;
+            uint64_t micros = std::chrono::duration_cast<std::chrono::microseconds>(frameDuration).count();
+
+            float dt = static_cast<float>(micros) / 1000.f;
+            m_Scene->Update(dt);
+            OnUpdate(dt);
 
             for (size_t i = 0; i < m_Renderers.size(); ++i) {
                 if (!m_Renderers[i]->IsRunning()) {
@@ -51,6 +43,8 @@ namespace Iris {
                     m_Renderers.pop_back();
                 }
             }
+            m_LastFrameFinished = std::chrono::high_resolution_clock::now();
+            std::this_thread::sleep_for(1ms);
         }
     }
 }
