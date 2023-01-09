@@ -11,6 +11,7 @@ namespace Iris {
         void SetUniform(std::string_view name, const glm::vec3& data);
         void SetUniform(std::string_view name, const glm::mat4x4& data);
         void SetUniform(std::string_view name, const float& data);
+        void SetUniform(std::string_view name, const uint32_t& data);
         void Link() const;
         void Use() const;
     private:

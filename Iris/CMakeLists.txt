@@ -8,7 +8,10 @@ add_library(Iris STATIC ${SRC_FILES})
 set_target_properties(Iris PROPERTIES LINK_SEARCH_START_STATIC 1)
 set_target_properties(Iris PROPERTIES LINK_SEARCH_END_STATIC 1)
 
-target_include_directories(Iris PUBLIC "${PROJECT_SOURCE_DIR}/Iris/src")
+target_include_directories(Iris PUBLIC
+        "${PROJECT_SOURCE_DIR}/Iris/src"
+        "${PROJECT_SOURCE_DIR}/Submodules/stb"
+        )
 target_link_libraries(Iris PUBLIC
         Threads::Threads
         Vulkan::Vulkan

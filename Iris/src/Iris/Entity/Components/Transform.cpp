@@ -17,9 +17,14 @@ namespace Iris {
     }
 
     glm::mat4 Transform::GetMatrix() const {
-        return glm::scale(
-                glm::translate(glm::mat4(1.f), m_Translation) * glm::toMat4(glm::quat(glm::radians(m_Rotation))),
-                m_Scale);
+        auto rotRadians = glm::radians(m_Rotation);
+        auto rotation = glm::rotate(glm::mat4(1.f), rotRadians.x, { 1.f, 0.f, 0.f })
+                        * glm::rotate(glm::mat4(1.f), rotRadians.y, { 0.f, 1.f, 0.f })
+                        * glm::rotate(glm::mat4(1.f), rotRadians.z, { 0.f, 0.f, 1.f });
+
+        return glm::translate(glm::mat4(1.f), m_Translation)
+               * rotation
+               * glm::scale(glm::mat4(1.f), m_Scale);
     }
 
     void Transform::SetTranslation(const glm::vec3& translation) {

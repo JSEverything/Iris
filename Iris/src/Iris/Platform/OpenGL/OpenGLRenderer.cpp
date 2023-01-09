@@ -11,6 +11,10 @@ namespace Iris {
             if (!m_Scene->GetEntity(entityId).GetComponents<Camera>().empty()) {
                 m_CameraEntityId = entityId;
             };
+            if (!m_Scene->GetEntity(entityId).GetComponents<Material>().empty()) {
+                std::scoped_lock l(m_QueueMutex);
+                m_EntityQueue.emplace_back(entityId);
+            };
         });
     }
 
@@ -54,6 +58,11 @@ namespace Iris {
                     temp.SetIndices(mesh.GetIndices());
                     m_Meshes.emplace_back(temp);
                 }
+
+                for (auto& material: m_Scene->GetEntity(m_EntityQueue[i]).GetComponents<Material>()) {
+                    m_Textures.emplace_back();
+                    m_Textures[m_Textures.size() - 1].loadFromFile(material.getTexture());
+                }
             }
             m_EntityQueue.clear();
         }
@@ -82,13 +91,22 @@ namespace Iris {
         };
         m_Triangle->SetVertices(vertices);*/
 
-        m_ShaderProgram->Use();
         for (GLMesh& obj: m_Meshes) {
+            auto& object = m_Scene->GetEntity(obj.GetParentId());
             m_ShaderProgram
-                    ->SetUniform("model", m_Scene->GetEntity(obj.GetParentId()).GetComponent<Mesh>().GetModelMatrix());
+                    ->SetUniform("model", object.GetComponent<Mesh>().GetModelMatrix());
             m_ShaderProgram
-                    ->SetUniform("modelPos", m_Scene->GetEntity(obj.GetParentId()).GetTransform().GetTranslation());
+                    ->SetUniform("modelPos", object.GetTransform().GetTranslation());
+            m_ShaderProgram
+                    ->SetUniform("diffuseTexture", 0u);
+
+            if (!object.GetComponents<Material>().empty()) {
+                m_Textures[0].bind(0);
+            }
+
+            m_ShaderProgram->Use();
             obj.Render();
+            GLTexture::unbind();
         }
     }
 

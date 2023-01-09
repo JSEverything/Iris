@@ -3,12 +3,10 @@
 #include <glm/gtc/type_ptr.hpp>
 
 namespace Iris {
-    bool checkShaderStatus(GLuint shader)
-    {
+    bool checkShaderStatus(GLuint shader) {
         GLint stat;
         glGetShaderiv(shader, GL_COMPILE_STATUS, &stat);
-        if(stat == GL_FALSE)
-        {
+        if (stat == GL_FALSE) {
             GLchar infoLog[10240];
             glGetShaderInfoLog(shader, 10240, nullptr, infoLog);
             Log::Core::Error("Shader error: {}", infoLog);
@@ -17,12 +15,10 @@ namespace Iris {
         return true;
     }
 
-    bool checkProgramStatus(GLuint program)
-    {
+    bool checkProgramStatus(GLuint program) {
         GLint stat;
         glGetProgramiv(program, GL_LINK_STATUS, &stat);
-        if(stat == GL_FALSE)
-        {
+        if (stat == GL_FALSE) {
             GLchar infoLog[10240];
             glGetProgramInfoLog(program, 10240, nullptr, infoLog);
             Log::Core::Error("Program error: {}", infoLog);
@@ -58,7 +54,7 @@ namespace Iris {
         //glShaderBinary(1, &shader, GL_SHADER_BINARY_FORMAT_SPIR_V, code.c_str(), static_cast<GLint>(code.size()));
         //        glSpecializeShader(shader, "main", 0, nullptr, nullptr);
 
-        if(checkShaderStatus(shader)) {
+        if (checkShaderStatus(shader)) {
             glAttachShader(m_ShaderProgram, shader);
             glDeleteShader(shader);
         }
@@ -97,5 +93,11 @@ namespace Iris {
         GLint location = glGetUniformLocation(m_ShaderProgram, name.data());
         if (location == -1) return;
         glUniform1f(location, data);
+    }
+
+    void GLShaderProgram::SetUniform(std::string_view name, const uint32_t& data) {
+        GLint location = glGetUniformLocation(m_ShaderProgram, name.data());
+        if (location == -1) return;
+        glUniform1ui(location, data);
     }
 }

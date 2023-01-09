@@ -48,7 +48,7 @@ namespace Iris {
             m_Vertices.emplace_back(Vertex{
                     .position = { px, py, pz, 0.f },
                     .color = { cr, cg, cb, 1.f },
-                    .normal = { 0.f, 0.f, 0.f, 1.f } });
+            });
         }
 
         for (auto idx: shapes[0].mesh.indices) {
@@ -57,6 +57,15 @@ namespace Iris {
             float ny = attrib.normals[idx.normal_index * 3 + 1];
             float nz = attrib.normals[idx.normal_index * 3 + 2];
             m_Vertices[idx.vertex_index].normal = { nx, ny, nz, 1.f };
+        }
+
+        if (attrib.texcoords.empty()) return;
+
+        for (auto idx: shapes[0].mesh.indices) {
+            float u = attrib.texcoords[idx.texcoord_index * 2] + 0.5f;
+            float v = attrib.texcoords[idx.texcoord_index * 2 + 1];
+
+            m_Vertices[idx.vertex_index].uv = { u, v };
         }
     }
 

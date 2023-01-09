@@ -2,6 +2,7 @@
 #include "Iris/Renderer/Renderer.hpp"
 #include "Iris/Platform/OpenGL/GLMesh.hpp"
 #include "Iris/Platform/OpenGL/GLShaderProgram.hpp"
+#include "Iris/Platform/OpenGL/GLTexture.hpp"
 
 namespace Iris {
     class OpenGLRenderer : public Renderer {
@@ -16,6 +17,7 @@ namespace Iris {
     private:
         std::shared_ptr<GLShaderProgram> m_ShaderProgram{};
         std::vector<GLMesh> m_Meshes;
+        std::vector<GLTexture> m_Textures;
         std::vector<size_t> m_EntityQueue;
         std::mutex m_QueueMutex;
     };
