@@ -61,10 +61,13 @@ namespace Iris {
 
         if (attrib.texcoords.empty()) return;
 
-        for (auto idx: shapes[0].mesh.indices) {
-            float u = attrib.texcoords[idx.texcoord_index * 2] + 0.5f;
-            float v = attrib.texcoords[idx.texcoord_index * 2 + 1];
-
+        for (auto idx : shapes[0].mesh.indices) {
+            float u = 0.f, v = 0.f;
+            if (idx.texcoord_index >= 0) {
+                // Flip Y coord.
+                u = attrib.texcoords[2 * idx.texcoord_index];
+                v = 1.0f - attrib.texcoords[2 * idx.texcoord_index + 1];
+            }
             m_Vertices[idx.vertex_index].uv = { u, v };
         }
     }

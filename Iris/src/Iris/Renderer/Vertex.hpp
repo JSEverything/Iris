@@ -8,6 +8,6 @@ namespace Iris {
         glm::vec4 color{};
         glm::vec4 normal{};
 
-        glm::uvec2 uv{};
+        glm::vec2 uv{};
     };
 }
