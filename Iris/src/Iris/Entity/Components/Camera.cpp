@@ -95,7 +95,6 @@ namespace Iris {
     void Camera::MouseZoom(float delta) {
         m_Distance -= delta * ZoomSpeed();
         if (m_Distance < 1.0f) {
-            m_FocalPoint = GetForwardDirection();
             m_Distance = 1.0f;
         }
     }

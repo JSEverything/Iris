@@ -1,6 +1,5 @@
 #pragma once
 #include "Iris/Entity/Component.hpp"
-#include "Iris/Renderer/MVP.hpp"
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
@@ -43,7 +42,7 @@ namespace Iris {
         float m_NearClip;
         float m_FarClip;
 
-        glm::vec3 m_FocalPoint = GetForwardDirection();
+        glm::vec3 m_FocalPoint = { 0.f, 0.f, 0.f };
         float m_Pitch = 0.f, m_Yaw = 0.f;
         float m_Distance = 10.f;
         glm::vec2 m_InitialMousePos{ 0.f };

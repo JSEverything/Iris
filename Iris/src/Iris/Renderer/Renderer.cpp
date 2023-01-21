@@ -1,5 +1,5 @@
 #include "Renderer.hpp"
-#include "Iris/Platform/Vulkan/VulkanRenderer.hpp"
+#include "Iris/Platform/Vulkan/Renderer.hpp"
 #include "Iris/Platform/OpenGL/OpenGLRenderer.hpp"
 #include "Iris/Util/Input.hpp"
 #include <chrono>
@@ -20,13 +20,13 @@ namespace Iris {
         Log::Core::Info("Renderer {} destroyed", m_Window->GetTitle());
     }
 
-    std::shared_ptr<Renderer>
+    std::unique_ptr<Renderer>
     Renderer::Create(RenderAPI api, const WindowOptions& opts, const std::shared_ptr<Scene>& scene) {
         switch (api) {
             case RenderAPI::Vulkan:
-                return std::make_shared<VulkanRenderer>(opts, scene);
+                return std::make_unique<Vulkan::Renderer>(opts, scene);
             case RenderAPI::OpenGL:
-                return std::make_shared<OpenGLRenderer>(opts, scene);
+                return std::make_unique<OpenGLRenderer>(opts, scene);
             default:
                 return {};
         }

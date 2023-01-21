@@ -6,7 +6,7 @@
 namespace Iris {
     class Renderer {
     public:
-        ~Renderer();
+        virtual ~Renderer();
 
         [[nodiscard]] bool IsRunning() const { return m_Running; };
 
@@ -14,7 +14,7 @@ namespace Iris {
 
         [[nodiscard]] std::shared_ptr<Window> GetWindow() const { return m_Window; };
 
-        static std::shared_ptr<Renderer>
+        static std::unique_ptr<Renderer>
         Create(RenderAPI api, const WindowOptions& opts, const std::shared_ptr<Scene>& scene);
     protected:
         explicit Renderer(RenderAPI api, const WindowOptions& opts, const std::shared_ptr<Scene>& scene);

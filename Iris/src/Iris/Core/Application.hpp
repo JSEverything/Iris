@@ -24,7 +24,7 @@ namespace Iris {
         void Run();
     protected:
         ApplicationDetails m_Details;
-        std::vector<std::shared_ptr<Renderer>> m_Renderers;
+        std::unique_ptr<Renderer> m_Renderer;
         std::shared_ptr<Scene> m_Scene = std::make_shared<Scene>();
         std::chrono::time_point<std::chrono::high_resolution_clock, std::chrono::duration<double>> m_LastFrameFinished;
     private:

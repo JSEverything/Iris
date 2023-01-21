@@ -1,4 +1,5 @@
 #include "Editor.hpp"
+#include "Iris/Core/Log.hpp"
 #include "Iris/Util/Input.hpp"
 
 namespace Iris {
@@ -19,14 +20,15 @@ namespace Iris {
         m_Scene->AddObject(floor);
 
         auto& axis = m_Scene->CreateObject();
-        axis.AddComponent<Mesh>("../Assets/axis.obj");
-        axis.GetTransform().SetScale({0.3f, 0.3f, 0.3f});
+        axis.AddComponent<Mesh>("../Assets/Axis/axis.obj");
+        axis.AddComponent<Material>("../Assets/Axis/albedo.png");
+        axis.GetTransform().SetScale({ 0.3f, 0.3f, 0.3f });
         m_Scene->AddObject(axis);
-        
+
         auto& cube = m_Scene->CreateObject();
-        cube.AddComponent<Mesh>("../Assets/textured.obj");
-        cube.GetTransform().SetTranslation({2.f, 2.f, 2.f});
-        cube.AddComponent<Material>("../Assets/Cube2.png");
+        cube.AddComponent<Mesh>("../Assets/cube.obj");
+        cube.AddComponent<Material>("../Assets/RustingMetal/");
+        cube.GetTransform().SetTranslation({ 2.f, 2.f, 2.f });
         m_Scene->AddObject(cube);
     }
 

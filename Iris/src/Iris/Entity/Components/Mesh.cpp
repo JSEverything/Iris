@@ -35,38 +35,29 @@ namespace Iris {
             Log::Core::Critical("Failed to load obj");
             std::exit(-1);
         }
-        m_Vertices.reserve(attrib.vertices.size() / 3);
-        for (size_t i = 0; i < attrib.vertices.size() / 3; ++i) {
-            float px = attrib.vertices[i * 3];
-            float py = attrib.vertices[i * 3 + 1];
-            float pz = attrib.vertices[i * 3 + 2];
-
-            float cr = attrib.colors[i * 3];
-            float cg = attrib.colors[i * 3 + 1];
-            float cb = attrib.colors[i * 3 + 2];
-
-            m_Vertices.emplace_back(Vertex{
-                    .position = { px, py, pz, 0.f },
-                    .color = { cr, cg, cb, 1.f },
-            });
-        }
-
+        m_Vertices.resize(attrib.vertices.size() / 3);
         for (auto idx: shapes[0].mesh.indices) {
             m_Indices.push_back(idx.vertex_index);
             float nx = attrib.normals[idx.normal_index * 3];
             float ny = attrib.normals[idx.normal_index * 3 + 1];
             float nz = attrib.normals[idx.normal_index * 3 + 2];
+
+            float px = attrib.vertices[idx.vertex_index * 3];
+            float py = attrib.vertices[idx.vertex_index * 3 + 1];
+            float pz = attrib.vertices[idx.vertex_index * 3 + 2];
+
+            float cr = attrib.colors[idx.vertex_index * 3];
+            float cg = attrib.colors[idx.vertex_index * 3 + 1];
+            float cb = attrib.colors[idx.vertex_index * 3 + 2];
+
+            m_Vertices[idx.vertex_index].position = { px, py, pz, 1.f };
+            m_Vertices[idx.vertex_index].color = { cr, cg, cb, 1.f };
             m_Vertices[idx.vertex_index].normal = { nx, ny, nz, 1.f };
-        }
 
-        if (attrib.texcoords.empty()) return;
-
-        for (auto idx : shapes[0].mesh.indices) {
             float u = 0.f, v = 0.f;
-            if (idx.texcoord_index >= 0) {
-                // Flip Y coord.
-                u = attrib.texcoords[2 * idx.texcoord_index];
-                v = 1.0f - attrib.texcoords[2 * idx.texcoord_index + 1];
+            if (!attrib.texcoords.empty() && idx.texcoord_index != -1) {
+                u = attrib.texcoords[idx.texcoord_index * 2];
+                v = 1.0f - attrib.texcoords[idx.texcoord_index * 2 + 1]; // Flip Y coord.
             }
             m_Vertices[idx.vertex_index].uv = { u, v };
         }
