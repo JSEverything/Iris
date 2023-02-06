@@ -29,19 +29,21 @@ namespace Iris {
 
         m_FramebufferTexture = std::make_shared<GLTexture>();
         m_FramebufferTexture->create({m_Window->GetWidth(), m_Window->GetHeight()});
+        m_DepthTexture = std::make_shared<GLTexture>();
+        m_DepthTexture->createDepth({m_Window->GetWidth(), m_Window->GetHeight()});
 
         m_FrameBuffer = std::make_shared<GLFramebuffer>();
         m_FrameBuffer->initialize(static_cast<int>(m_Window->GetWidth()), static_cast<int>(m_Window->GetHeight()));
         m_FrameBuffer->setTextureAsColorAttachment(0u, &*m_FramebufferTexture);
-        //m_FrameBuffer->setTextureAsDepthAttachment(0u, &*m_FramebufferDepthTexture);
+        m_FrameBuffer->setTextureAsDepthAttachment(&*m_DepthTexture);
 
         m_FramebufferMesh = std::make_shared<GLMesh>(GL_TRIANGLES, 0);
         m_FramebufferMesh->SetVertices(
-                { Vertex{ .position={ 1000.f, -1000.f, 0.f, 1.f }, .uv = { 0.f, 0.f } },
-                  Vertex{ .position={ 1000.f, 1000.f, 0.f, 1.f }, .uv = { 1.f, 0.f } },
-                  Vertex{ .position={ -1000.f, -1000.f, 0.f, 1.f }, .uv = { 0.f, 1.f } },
-                  Vertex{ .position={ -1000.f, 1000.f, 0.f, 1.f }, .uv = { 1.f, 1.f } }, });
-        m_FramebufferMesh->SetIndices({1, 2, 4, 4, 3, 1});
+                { Vertex{ .position={ -1.f, 1.f, 0.f, 1.f }, .uv = { 0.f, 1.f } },
+                  Vertex{ .position={ 1.f, 1.f, 0.f, 1.f }, .uv = { 1.f, 1.f } },
+                  Vertex{ .position={ -1.f, -1.f, 0.f, 1.f }, .uv = { 0.f, 0.f } },
+                  Vertex{ .position={ 1.f, -1.f, 0.f, 1.f }, .uv = { 1.f, 0.f } }, });
+        m_FramebufferMesh->SetIndices({0,2,1,2,3,1});
     }
 
     void OpenGLRenderer::LoadShaders() {
@@ -67,19 +69,35 @@ namespace Iris {
     }
 
     void OpenGLRenderer::Draw() {
+        glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint*)&GLFramebuffer::DefaultFramebuffer);
         if (!m_EntityQueue.empty()) {
             TransferObjects();
         }
-        //m_FrameBuffer->bind();
+
+        glViewport(0,0, m_FrameBuffer->width(), m_FrameBuffer->height());
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+
+        glViewport(0, 0, m_FrameBuffer->width()/2, m_FrameBuffer->height());
+        //m_FrameBuffer->bind();
+        GLFramebuffer::bindDefault();
         Render();
 
-        //GLFramebuffer::bindDefault();
-        //m_FramebufferProgram->Use();
-        //m_FramebufferTexture->bind(0u);
-        //m_FramebufferProgram->SetUniform("fbTexture", 0u);
-        //m_FramebufferMesh->Render();
-        //GLTexture::unbind(0u);
+        GLFramebuffer::bindDefault();
+        glViewport(0,0, m_FrameBuffer->width()/2, m_FrameBuffer->height());
+        m_FramebufferProgram->Use();
+        m_FramebufferTexture->bind(0u);
+        m_FramebufferProgram->SetUniform("fbTexture", 0u);
+        m_FramebufferMesh->Render();
+        GLTexture::unbind(0u);
+
+        GLFramebuffer::bindDefault();
+        glViewport(m_FrameBuffer->width()/2, 0, m_FrameBuffer->width()/2, m_FrameBuffer->height());
+        //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        m_FramebufferProgram->Use();
+        m_DepthTexture->bind(0u);
+        m_FramebufferProgram->SetUniform("fbTexture", 0u);
+        m_FramebufferMesh->Render();
+        GLTexture::unbind(0u);
         //m_FrameBuffer->unbind();
     }
 
@@ -111,7 +129,7 @@ namespace Iris {
                 glm::vec3(static_cast<float>(m_FrameNr) / 10.f) / glm::vec3(120.f) + glm::vec3(0.f, pi3, 2 * pi3)));
 
         glClearColor(color.r, color.g, color.b, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         for (GLMesh& obj: m_Meshes) {
             auto& object = m_Scene->GetEntity(obj.GetParentId());

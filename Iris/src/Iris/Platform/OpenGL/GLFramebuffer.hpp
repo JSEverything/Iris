@@ -28,7 +28,7 @@ namespace Iris {
 
         void setTextureAsColorAttachment(int unit, GLTexture* tex);
         void setTextureAsDepthAttachment(GLTexture *tex);
-    private:
+    public:
         GLuint m_fbo, m_rbo;
         GLuint m_depthTex;
     };

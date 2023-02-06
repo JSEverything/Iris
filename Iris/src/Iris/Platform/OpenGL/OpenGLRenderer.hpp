@@ -25,6 +25,7 @@ namespace Iris {
         std::shared_ptr<GLFramebuffer> m_FrameBuffer{};
         std::shared_ptr<GLMesh> m_FramebufferMesh{};
         std::shared_ptr<GLTexture> m_FramebufferTexture{};
+        std::shared_ptr<GLTexture> m_DepthTexture{};
         std::shared_ptr<GLShaderProgram> m_FramebufferProgram{};
 
         std::vector<GLMesh> m_Meshes;
