@@ -6,5 +6,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "Iris/Core/Log.hpp"
+#include "Iris/Debug/ScopeTimer.hpp"
 
 #define GLFW_INCLUDE_VULKAN
