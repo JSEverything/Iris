@@ -4,23 +4,9 @@
 #include "Iris/Platform/Vulkan/Texture.hpp"
 
 namespace Iris::Vulkan {
-    Renderer::Renderer(const WindowOptions& opts, const std::shared_ptr<Scene>& scene)
-            : Iris::Renderer(RenderAPI::Vulkan, opts, scene) {
-        scene->on<ObjectAdd>([this](uint32_t entityId) {
-            if (!m_Scene->GetEntity(entityId).GetComponents<Camera>().empty()) {
-                m_CameraEntityId = entityId;
-            }
-            if (!m_Scene->GetEntity(entityId).GetComponents<Iris::Mesh>().empty()
-                || !m_Scene->GetEntity(entityId).GetComponents<Iris::Material>().empty()) {
-                std::scoped_lock l(m_QueueMutex);
-                m_EntityQueue.emplace_back(entityId);
-            }
-        });
-    }
+    Renderer::Renderer(const std::shared_ptr<Window>& window) : Iris::Renderer(window) {
+        m_Ctx = std::make_shared<Context>(window);
 
-    void Renderer::Init() {
-        InitDevice();
-        InitQueues();
         InitSwapchain();
         InitDepthBuffer();
         InitRenderPass();
@@ -31,140 +17,20 @@ namespace Iris::Vulkan {
         InitPipelines();
     }
 
-    void Renderer::InitDevice() {
-        vkb::InstanceBuilder instanceBuilder;
-
-        auto instance = instanceBuilder
-                .set_app_name(m_Window->GetTitle().data())
-                .set_engine_name("Iris")
-                .set_debug_callback([](VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                                       VkDebugUtilsMessageTypeFlagsEXT messageType,
-                                       const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-                                       void* pUserData) -> VkBool32 {
-                                        auto type = vkb::to_string_message_type(messageType);
-                                        auto msg = std::string_view(pCallbackData->pMessage);
-
-                                        switch (messageSeverity) {
-                                            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-                                                Log::Core::Error("{}: {}", type, msg);
-                                                break;
-                                            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-                                                Log::Core::Warn("{}: {}", type, msg);
-                                                break;
-                                            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-                                                Log::Core::Info("{}: {}", type, msg);
-                                                break;
-                                            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-                                                Log::Core::Trace("{}: {}", type, msg);
-                                                break;
-                                            default:
-                                                break;
-                                        }
-                                        return VK_FALSE;
-                                    }
-                )
-                .request_validation_layers()
-                .require_api_version(1, 3)
-                .build();
-        if (!instance) {
-            Log::Core::Critical("Failed to create Vulkan instance. Error: {}\n", instance.error().message());
-            std::exit(1);
-        }
-        m_Instance = instance.value();
-
-        VkSurfaceKHR surface;
-        VkCheck(glfwCreateWindowSurface(m_Instance, m_Window->GetGLFWWindow(), nullptr, &surface),
-                "glfwCreateWindowSurface");
-        m_Surface = vk::SurfaceKHR(surface);
-
-        VkPhysicalDeviceVulkan12Features features12{};
-        features12.runtimeDescriptorArray = true;
-        features12.descriptorBindingPartiallyBound = true;
-
-        features12.shaderUniformBufferArrayNonUniformIndexing = true;
-        features12.shaderStorageBufferArrayNonUniformIndexing = true;
-        features12.shaderSampledImageArrayNonUniformIndexing = true;
-        features12.shaderStorageImageArrayNonUniformIndexing = true;
-
-        //features12.descriptorBindingUniformBufferUpdateAfterBind = true;
-        features12.descriptorBindingStorageBufferUpdateAfterBind = true;
-        features12.descriptorBindingSampledImageUpdateAfterBind = true;
-        features12.descriptorBindingStorageImageUpdateAfterBind = true;
-
-        vkb::PhysicalDeviceSelector selector{ m_Instance };
-        auto phys = selector
-                .set_surface(m_Surface)
-                .set_minimum_version(1, 3)
-                .require_dedicated_transfer_queue()
-                .set_required_features_12(features12)
-                .select();
-        if (!phys) {
-            Log::Core::Critical("Failed to select Vulkan Physical Device. Error: {}\n", phys.error().message());
-            std::exit(1);
-        }
-        m_PhysicalDevice = vk::PhysicalDevice(phys.value());
-
-        vkb::DeviceBuilder device_builder{ phys.value() };
-        auto dev = device_builder.build();
-        if (!dev) {
-            Log::Core::Critical("Failed to select Vulkan Device. Error: {}\n", dev.error().message());
-            std::exit(1);
-        }
-        m_Device = dev.value();
-        m_Device2 = vk::Device(m_Device);
-    }
-
-    void Renderer::InitQueues() {
-        auto gq = m_Device.get_queue(vkb::QueueType::graphics);
-        auto gqi = m_Device.get_queue_index(vkb::QueueType::graphics);
-        if (!gq.has_value() || !gqi.has_value()) {
-            Log::Core::Error("failed to get graphics queue: {}", gq.error().message());
-            exit(1);
-        }
-        m_GraphicsQueue = gq.value();
-        m_GraphicsQueueFamilyIndex = gqi.value();
-
-        auto pq = m_Device.get_queue(vkb::QueueType::present);
-        auto pqi = m_Device.get_queue_index(vkb::QueueType::present);
-        if (!pq.has_value() || !pqi.has_value()) {
-            Log::Core::Error("failed to get present queue: {}", pq.error().message());
-            exit(1);
-        }
-        m_PresentQueue = pq.value();
-        m_PresentQueueFamilyIndex = pqi.value();
-
-        auto cq = m_Device.get_queue(vkb::QueueType::compute);
-        auto cqi = m_Device.get_queue_index(vkb::QueueType::compute);
-        if (!cq.has_value() || !cqi.has_value()) {
-            Log::Core::Error("failed to get compute queue: {}", cq.error().message());
-            exit(1);
-        }
-        m_ComputeQueue = cq.value();
-        m_ComputeQueueFamilyIndex = cqi.value();
-
-        auto tq = m_Device.get_queue(vkb::QueueType::transfer);
-        auto tqi = m_Device.get_queue_index(vkb::QueueType::transfer);
-        if (!tq.has_value() || !tqi.has_value()) {
-            Log::Core::Error("failed to get transfer queue: {}", tq.error().message());
-            exit(1);
-        }
-        m_TransferQueue = tq.value();
-        m_TransferQueueFamilyIndex = tqi.value();
-    }
-
     void Renderer::InitSwapchain() {
         // get the supported VkFormats
-        std::vector<vk::SurfaceFormatKHR> formats = m_PhysicalDevice.getSurfaceFormatsKHR(m_Surface);
+        std::vector<vk::SurfaceFormatKHR> formats = m_Ctx->GetPhysDevice().getSurfaceFormatsKHR(m_Ctx->GetSurface());
         assert(!formats.empty());
         m_SwapchainFormat = (formats[0].format == vk::Format::eUndefined) ? vk::Format::eB8G8R8A8Unorm : formats[0]
                 .format;
 
-        vk::SurfaceCapabilitiesKHR surfaceCapabilities = m_PhysicalDevice.getSurfaceCapabilitiesKHR(m_Surface);
+        vk::SurfaceCapabilitiesKHR surfaceCapabilities = m_Ctx->GetPhysDevice()
+                .getSurfaceCapabilitiesKHR(m_Ctx->GetSurface());
         if (surfaceCapabilities.currentExtent.width == std::numeric_limits<uint32_t>::max()) {
             // If the surface size is undefined, the size is set to the size of the images requested.
-            m_SwapchainExtent.width = glm::clamp(m_Window->GetWidth(), surfaceCapabilities.minImageExtent.width,
+            m_SwapchainExtent.width = glm::clamp(m_Size.x, surfaceCapabilities.minImageExtent.width,
                                                  surfaceCapabilities.maxImageExtent.width);
-            m_SwapchainExtent.height = glm::clamp(m_Window->GetHeight(), surfaceCapabilities.minImageExtent.height,
+            m_SwapchainExtent.height = glm::clamp(m_Size.y, surfaceCapabilities.minImageExtent.height,
                                                   surfaceCapabilities.maxImageExtent.height);
         } else {
             // If the surface size is defined, the swap chain size must match
@@ -189,7 +55,7 @@ namespace Iris::Vulkan {
                     : vk::CompositeAlphaFlagBitsKHR::eOpaque;
 
         vk::SwapchainCreateInfoKHR swapChainCreateInfo(vk::SwapchainCreateFlagsKHR(),
-                                                       m_Surface,
+                                                       m_Ctx->GetSurface(),
                                                        surfaceCapabilities.minImageCount,
                                                        m_SwapchainFormat,
                                                        vk::ColorSpaceKHR::eSrgbNonlinear,
@@ -204,7 +70,8 @@ namespace Iris::Vulkan {
                                                        true,
                                                        nullptr);
 
-        std::vector<uint32_t> queueFamilyIndices = { m_GraphicsQueueFamilyIndex, m_PresentQueueFamilyIndex };
+        std::vector<uint32_t> queueFamilyIndices = { m_Ctx->GetGraphicsQueueFamilyIndex(),
+                                                     m_Ctx->GetPresentQueueFamilyIndex() };
 
         if (std::any_of(queueFamilyIndices.begin(), queueFamilyIndices.end(), [&](auto& index) {
             return index != queueFamilyIndices[0];
@@ -217,21 +84,21 @@ namespace Iris::Vulkan {
             swapChainCreateInfo.pQueueFamilyIndices = queueFamilyIndices.data();
         }
 
-        m_Swapchain = m_Device2.createSwapchainKHR(swapChainCreateInfo);
+        m_Swapchain = m_Ctx->GetDevice().createSwapchainKHR(swapChainCreateInfo);
 
-        m_SwapchainImages = m_Device2.getSwapchainImagesKHR(m_Swapchain);
+        m_SwapchainImages = m_Ctx->GetDevice().getSwapchainImagesKHR(m_Swapchain);
 
         m_SwapchainImageViews.reserve(m_SwapchainImages.size());
         vk::ImageViewCreateInfo imageViewCreateInfo({}, {}, vk::ImageViewType::e2D, m_SwapchainFormat, {},
                                                     { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 });
         for (auto image: m_SwapchainImages) {
             imageViewCreateInfo.image = image;
-            m_SwapchainImageViews.push_back(m_Device2.createImageView(imageViewCreateInfo));
+            m_SwapchainImageViews.push_back(m_Ctx->GetDevice().createImageView(imageViewCreateInfo));
         }
     }
 
     void Renderer::InitDepthBuffer() {
-        vk::FormatProperties formatProperties = m_PhysicalDevice.getFormatProperties(m_DepthFormat);
+        vk::FormatProperties formatProperties = m_Ctx->GetPhysDevice().getFormatProperties(m_DepthFormat);
 
         vk::ImageTiling tiling;
         if (formatProperties.linearTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment) {
@@ -245,16 +112,16 @@ namespace Iris::Vulkan {
         vk::ImageCreateInfo imageCreateInfo(vk::ImageCreateFlags(),
                                             vk::ImageType::e2D,
                                             m_DepthFormat,
-                                            vk::Extent3D(m_Window->GetWidth(), m_Window->GetHeight(), 1),
+                                            vk::Extent3D(m_Size.x, m_Size.y, 1),
                                             1,
                                             1,
                                             vk::SampleCountFlagBits::e1,
                                             tiling,
                                             vk::ImageUsageFlagBits::eDepthStencilAttachment);
-        m_DepthImage = m_Device2.createImage(imageCreateInfo);
+        m_DepthImage = m_Ctx->GetDevice().createImage(imageCreateInfo);
 
-        vk::PhysicalDeviceMemoryProperties memoryProperties = m_PhysicalDevice.getMemoryProperties();
-        vk::MemoryRequirements memoryRequirements = m_Device2.getImageMemoryRequirements(m_DepthImage);
+        vk::PhysicalDeviceMemoryProperties memoryProperties = m_Ctx->GetPhysDevice().getMemoryProperties();
+        vk::MemoryRequirements memoryRequirements = m_Ctx->GetDevice().getImageMemoryRequirements(m_DepthImage);
         uint32_t typeBits = memoryRequirements.memoryTypeBits;
         auto typeIndex = uint32_t(~0);
         for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++) {
@@ -267,11 +134,11 @@ namespace Iris::Vulkan {
             typeBits >>= 1;
         }
         assert(typeIndex != uint32_t(~0));
-        m_DepthMemory = m_Device2.allocateMemory(vk::MemoryAllocateInfo(memoryRequirements.size, typeIndex));
+        m_DepthMemory = m_Ctx->GetDevice().allocateMemory(vk::MemoryAllocateInfo(memoryRequirements.size, typeIndex));
 
-        m_Device2.bindImageMemory(m_DepthImage, m_DepthMemory, 0);
+        m_Ctx->GetDevice().bindImageMemory(m_DepthImage, m_DepthMemory, 0);
 
-        m_DepthImageView = m_Device2.createImageView(vk::ImageViewCreateInfo(
+        m_DepthImageView = m_Ctx->GetDevice().createImageView(vk::ImageViewCreateInfo(
                 vk::ImageViewCreateFlags(), m_DepthImage, vk::ImageViewType::e2D, m_DepthFormat, {},
                 { vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1 }));
     }
@@ -302,7 +169,7 @@ namespace Iris::Vulkan {
         vk::SubpassDescription subpass(vk::SubpassDescriptionFlags(), vk::PipelineBindPoint::eGraphics, {},
                                        colorReference, {}, &depthReference);
 
-        m_MainRenderPass = m_Device2.createRenderPass(
+        m_MainRenderPass = m_Ctx->GetDevice().createRenderPass(
                 vk::RenderPassCreateInfo(vk::RenderPassCreateFlags(), attachmentDescriptions, subpass));
     }
 
@@ -317,40 +184,40 @@ namespace Iris::Vulkan {
 
         for (auto& m_SwapchainImageView: m_SwapchainImageViews) {
             attachments[0] = m_SwapchainImageView;
-            m_Framebuffers.push_back(m_Device2.createFramebuffer(framebuffer_info));
+            m_Framebuffers.push_back(m_Ctx->GetDevice().createFramebuffer(framebuffer_info));
         }
     }
 
     void Renderer::InitCommandBuffers() {
-        m_CommandPool = m_Device2
+        m_CommandPool = m_Ctx->GetDevice()
                 .createCommandPool(vk::CommandPoolCreateInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-                                                             m_GraphicsQueueFamilyIndex));
-        m_CommandBuffer = m_Device2.allocateCommandBuffers(
+                                                             m_Ctx->GetGraphicsQueueFamilyIndex()));
+        m_CommandBuffer = m_Ctx->GetDevice().allocateCommandBuffers(
                 vk::CommandBufferAllocateInfo(m_CommandPool, vk::CommandBufferLevel::ePrimary, 1)).front();
 
-        m_UploadContext = std::make_shared<UploadContext>(m_Device2, m_TransferQueue, m_TransferQueueFamilyIndex);
+        m_UploadContext = std::make_shared<UploadContext>(m_Ctx);
     }
 
     void Renderer::InitSyncStructures() {
-        m_RenderFence = m_Device2.createFence(vk::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled));
-        m_PresentSemaphore = m_Device2.createSemaphore(vk::SemaphoreCreateInfo());
-        m_RenderSemaphore = m_Device2.createSemaphore(vk::SemaphoreCreateInfo());
+        m_RenderFence = m_Ctx->GetDevice().createFence(vk::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled));
+        m_PresentSemaphore = m_Ctx->GetDevice().createSemaphore(vk::SemaphoreCreateInfo());
+        m_RenderSemaphore = m_Ctx->GetDevice().createSemaphore(vk::SemaphoreCreateInfo());
     }
 
     void Renderer::InitUniformBuffer() {
         m_ViewProjectionBuffer = std::make_unique<Buffer<glm::mat4>>(
-                m_Device2, m_PhysicalDevice, vk::BufferUsageFlagBits::eUniformBuffer, glm::mat4(1.f));
+                m_Ctx, vk::BufferUsageFlagBits::eUniformBuffer, glm::mat4(1.f));
     }
 
     void Renderer::InitPipelines() {
-        m_PipelineBuilder = std::make_unique<PipelineBuilder>(m_Device2);
+        m_PipelineBuilder = std::make_unique<PipelineBuilder>(m_Ctx->GetDevice());
 
         m_PipelineBuilder->SetVertexInputAttributes(
                         vk::VertexInputBindingDescription(0, sizeof(Vertex)),
                         parseVertexDescription(Vertex::GetDescription(), 0))
                 .AddVertexShader("./Shaders/PBR.vert.spv")
                 .AddFragmentShader("./Shaders/PBR.frag.spv")
-                .AddPushConstant(vk::ShaderStageFlagBits::eVertex, sizeof(glm::mat4))   // model matrix
+                .AddPushConstant(vk::ShaderStageFlagBits::eVertex, sizeof(glm::mat4))   // view-projection matrix
                 .AddPushConstant(vk::ShaderStageFlagBits::eFragment, sizeof(uint32_t))  // texture id
                 .AddUniform(0, 0, vk::ShaderStageFlagBits::eVertex)         // view-projection
                 .AddImage(1, 0, vk::ShaderStageFlagBits::eFragment, 1024)   // albedo
@@ -365,63 +232,16 @@ namespace Iris::Vulkan {
         m_Pipeline->UpdateBuffer(0, 0, m_ViewProjectionBuffer->GetDescriptorBufferInfo());
     }
 
-    void Renderer::Cleanup() {
-        m_Device2.waitIdle();
+    void Renderer::Render(const Camera& camera) {
+        while (vk::Result::eTimeout == m_Ctx->GetDevice().waitForFences(m_RenderFence, VK_TRUE, 100000000));
+        VkCheck(m_Ctx->GetDevice().resetFences(1, &m_RenderFence), "Reset Draw Fence");
 
-        m_Meshes.clear();
-        m_Textures.clear();
-
-        m_Device2.destroySemaphore(m_PresentSemaphore);
-        m_Device2.destroySemaphore(m_RenderSemaphore);
-        m_Device2.destroyFence(m_RenderFence);
-
-        m_ViewProjectionBuffer.reset();
-
-        for (auto const& framebuffer: m_Framebuffers) {
-            m_Device2.destroyFramebuffer(framebuffer);
-        }
-
-        m_Device2.destroyRenderPass(m_MainRenderPass);
-
-        m_Device2.destroyImageView(m_DepthImageView);
-        m_Device2.freeMemory(m_DepthMemory);
-        m_Device2.destroyImage(m_DepthImage);
-
-        for (auto& imageView: m_SwapchainImageViews) {
-            m_Device2.destroyImageView(imageView);
-        }
-        m_Device2.destroySwapchainKHR(m_Swapchain);
-
-        m_UploadContext.reset();
-        m_Device2.freeCommandBuffers(m_CommandPool, m_CommandBuffer);
-        m_Device2.destroyCommandPool(m_CommandPool);
-
-        m_Pipeline.reset();
-        m_PipelineBuilder.reset();
-
-        vkb::destroy_device(m_Device);
-        vkb::destroy_surface(m_Instance, m_Surface);
-        vkb::destroy_instance(m_Instance);
-    }
-
-    void Renderer::Draw() {
-        if (!m_EntityQueue.empty()) {
-            std::scoped_lock l(m_QueueMutex);
-            ProcessEntityQueue();
-        }
+        auto* viewProjection = m_ViewProjectionBuffer->Map();
+        *viewProjection = camera.GetProjectionMatrix() * camera.GetViewMatrix();
+        m_ViewProjectionBuffer->Unmap();
 
         vk::Extent2D extent{ m_Window->GetWidth(), m_Window->GetHeight() };
-        while (vk::Result::eTimeout == m_Device2.waitForFences(m_RenderFence, VK_TRUE, 100000000));
-        VkCheck(m_Device2.resetFences(1, &m_RenderFence), "Reset Draw Fence");
-
-        if (m_CameraEntityId != -1) {
-            auto camera = m_Scene->GetEntity(m_CameraEntityId).GetComponent<Camera>();
-            auto* viewProjection = m_ViewProjectionBuffer->Map();
-            *viewProjection = camera.GetProjectionMatrix() * camera.GetViewMatrix();
-            m_ViewProjectionBuffer->Unmap();
-        }
-
-        vk::ResultValue<uint32_t> currentBuffer = m_Device2
+        vk::ResultValue<uint32_t> currentBuffer = m_Ctx->GetDevice()
                 .acquireNextImageKHR(m_Swapchain, 100000000, m_PresentSemaphore, nullptr);
         m_CommandBuffer.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlags()));
 
@@ -435,7 +255,8 @@ namespace Iris::Vulkan {
 
         m_CommandBuffer.beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
         m_CommandBuffer.setViewport( // Viewport is flipped
-                0, vk::Viewport(0.0f, static_cast<float>(extent.height), static_cast<float>(extent.width),
+                0, vk::Viewport(0.0f, static_cast<float>(extent.height),
+                                static_cast<float>(extent.width),
                                 -static_cast<float>(extent.height), 0.0f, 1.0f));
         m_CommandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), extent));
 
@@ -458,42 +279,84 @@ namespace Iris::Vulkan {
         vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
         vk::SubmitInfo submitInfo(m_PresentSemaphore, waitDestinationStageMask, m_CommandBuffer, m_RenderSemaphore);
 
-        m_GraphicsQueue.submit(submitInfo, m_RenderFence);
+        m_Ctx->GetGraphicsQueue().submit(submitInfo, m_RenderFence);
 
-        VkCheck(m_GraphicsQueue.presentKHR(vk::PresentInfoKHR(m_RenderSemaphore, m_Swapchain, currentBuffer.value)),
+        VkCheck(m_Ctx->GetGraphicsQueue()
+                        .presentKHR(vk::PresentInfoKHR(m_RenderSemaphore, m_Swapchain, currentBuffer.value)),
                 "vk::Queue::presentKHR returned vk::Result::eSuboptimalKHR");
+
+        Iris::Renderer::Present();
     }
 
-    void Renderer::ProcessEntityQueue() {
-        for (uint32_t& entity: m_EntityQueue) {
+    Renderer::~Renderer() {
+        m_Ctx->GetDevice().waitIdle();
+
+        m_Meshes.clear();
+        m_Textures.clear();
+
+        m_Ctx->GetDevice().destroySemaphore(m_PresentSemaphore);
+        m_Ctx->GetDevice().destroySemaphore(m_RenderSemaphore);
+        m_Ctx->GetDevice().destroyFence(m_RenderFence);
+
+        m_ViewProjectionBuffer.reset();
+
+        for (auto const& framebuffer: m_Framebuffers) {
+            m_Ctx->GetDevice().destroyFramebuffer(framebuffer);
+        }
+
+        m_Ctx->GetDevice().destroyRenderPass(m_MainRenderPass);
+
+        m_Ctx->GetDevice().destroyImageView(m_DepthImageView);
+        m_Ctx->GetDevice().freeMemory(m_DepthMemory);
+        m_Ctx->GetDevice().destroyImage(m_DepthImage);
+
+        for (auto& imageView: m_SwapchainImageViews) {
+            m_Ctx->GetDevice().destroyImageView(imageView);
+        }
+        m_Ctx->GetDevice().destroySwapchainKHR(m_Swapchain);
+
+        m_UploadContext.reset();
+        m_Ctx->GetDevice().freeCommandBuffers(m_CommandPool, m_CommandBuffer);
+        m_Ctx->GetDevice().destroyCommandPool(m_CommandPool);
+
+        m_Pipeline.reset();
+        m_PipelineBuilder.reset();
+
+        m_Ctx.reset();
+    }
+
+    void Renderer::SetScene(const std::shared_ptr<Scene>& scene) {
+        Iris::Renderer::SetScene(scene);
+
+        m_Scene->on<ObjectAdd>([this](uint32_t entity) {
             for (auto& mesh: m_Scene->GetEntity(entity).GetComponents<Iris::Mesh>()) {
-                m_Meshes.emplace_back(m_Device2, m_PhysicalDevice,
-                                      entity, mesh.GetVertices(), mesh.GetIndices());
+                m_Meshes.emplace_back(m_Ctx, entity, mesh.GetVertices(), mesh.GetIndices());
             }
+
             if (!m_Scene->GetEntity(entity).GetComponents<Material>().empty()) {
                 auto& material = m_Scene->GetEntity(entity).GetComponent<Material>();
                 if (material.getTexture().ends_with("/")) {
-                    m_Textures.emplace_back(m_Device2, m_PhysicalDevice, m_UploadContext,
+                    m_Textures.emplace_back(m_Ctx, m_UploadContext,
                                             material.getTexture() + "albedo.png");
-                    m_Textures.emplace_back(m_Device2, m_PhysicalDevice, m_UploadContext,
+                    m_Textures.emplace_back(m_Ctx, m_UploadContext,
                                             material.getTexture() + "normal.png");
-                    m_Textures.emplace_back(m_Device2, m_PhysicalDevice, m_UploadContext,
+                    m_Textures.emplace_back(m_Ctx, m_UploadContext,
                                             material.getTexture() + "metallic.png", 1);
-                    m_Textures.emplace_back(m_Device2, m_PhysicalDevice, m_UploadContext,
+                    m_Textures.emplace_back(m_Ctx, m_UploadContext,
                                             material.getTexture() + "height.png", 1);
-                    m_Textures.emplace_back(m_Device2, m_PhysicalDevice, m_UploadContext,
+                    m_Textures.emplace_back(m_Ctx, m_UploadContext,
                                             material.getTexture() + "roughness.png", 1);
-                    m_Textures.emplace_back(m_Device2, m_PhysicalDevice, m_UploadContext,
+                    m_Textures.emplace_back(m_Ctx, m_UploadContext,
                                             material.getTexture() + "ao.png", 1);
                     for (uint32_t i = 0; i < 6; ++i) {
-                        m_Pipeline->UpdateImage(1, i, m_Textures[m_Textures.size() - 6 + i].GetDescriptor(), entity);
+                        m_Pipeline
+                                ->UpdateImage(1, i, m_Textures[m_Textures.size() - 6 + i].GetDescriptor(), entity);
                     }
                 } else {
-                    m_Textures.emplace_back(m_Device2, m_PhysicalDevice, m_UploadContext, material.getTexture());
+                    m_Textures.emplace_back(m_Ctx, m_UploadContext, material.getTexture());
                     m_Pipeline->UpdateImage(1, 0, m_Textures[m_Textures.size() - 1].GetDescriptor(), entity);
                 }
             }
-        }
-        m_EntityQueue.clear();
+        });
     }
 }

@@ -55,11 +55,13 @@ namespace Iris {
     }
 
     void Camera::UpdateView() {
-        auto& transform = m_Scene->GetEntity(m_ParentId).GetTransform();
-        transform.SetTranslation(CalculatePosition());
+        if (m_Scene) {
+            auto& transform = m_Scene->GetEntity(m_ParentId).GetTransform();
+            transform.SetTranslation(CalculatePosition());
+        }
 
         glm::quat orientation = GetOrientation();
-        m_View = glm::translate(glm::mat4(1.f), transform.GetTranslation()) * glm::toMat4(orientation);
+        m_View = glm::translate(glm::mat4(1.f), CalculatePosition()) * glm::toMat4(orientation);
         m_View = glm::inverse(m_View);
     }
 

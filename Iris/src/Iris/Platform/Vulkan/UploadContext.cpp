@@ -1,16 +1,18 @@
 #include "UploadContext.hpp"
 
+#include <utility>
+
 namespace Iris::Vulkan {
-    UploadContext::UploadContext(const vk::Device& device, const vk::Queue& queue, uint32_t queueFamilyIndex)
-            : m_Device(device), m_TransferQueue(queue) {
-        m_CommandPool = m_Device
+    UploadContext::UploadContext(std::shared_ptr<Context> ctx)
+            : m_Ctx(std::move(ctx)) {
+        m_CommandPool = m_Ctx->GetDevice()
                 .createCommandPool(vk::CommandPoolCreateInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-                                                             queueFamilyIndex));
-        m_CommandBuffer = m_Device.allocateCommandBuffers(
+                                                             m_Ctx->GetTransferQueueFamilyIndex()));
+        m_CommandBuffer = m_Ctx->GetDevice().allocateCommandBuffers(
                 vk::CommandBufferAllocateInfo(m_CommandPool, vk::CommandBufferLevel::ePrimary, 1)).front();
 
-        m_TransferFence = m_Device.createFence(vk::FenceCreateInfo());
-        m_TransferSemaphore = m_Device.createSemaphore(vk::SemaphoreCreateInfo());
+        m_TransferFence = m_Ctx->GetDevice().createFence(vk::FenceCreateInfo());
+        m_TransferSemaphore = m_Ctx->GetDevice().createSemaphore(vk::SemaphoreCreateInfo());
     }
 
     void UploadContext::SubmitCommand(const std::function<void(vk::CommandBuffer&)>& function) {
@@ -20,21 +22,21 @@ namespace Iris::Vulkan {
         function(m_CommandBuffer);
 
         m_CommandBuffer.end();
-        
+
         vk::SubmitInfo submitInfo({}, {}, m_CommandBuffer);
 
-        m_TransferQueue.submit(submitInfo, m_TransferFence);
+        m_Ctx->GetTransferQueue().submit(submitInfo, m_TransferFence);
 
-        while (vk::Result::eTimeout == m_Device.waitForFences(m_TransferFence, VK_TRUE, 100000000));
-        m_Device.resetFences(m_TransferFence);
+        while (vk::Result::eTimeout == m_Ctx->GetDevice().waitForFences(m_TransferFence, VK_TRUE, 100000000));
+        m_Ctx->GetDevice().resetFences(m_TransferFence);
 
         m_CommandBuffer.reset();
     }
 
     UploadContext::~UploadContext() {
-        m_Device.destroyFence(m_TransferFence);
-        m_Device.destroySemaphore(m_TransferSemaphore);
-        m_Device.freeCommandBuffers(m_CommandPool, m_CommandBuffer);
-        m_Device.destroyCommandPool(m_CommandPool);
+        m_Ctx->GetDevice().destroyFence(m_TransferFence);
+        m_Ctx->GetDevice().destroySemaphore(m_TransferSemaphore);
+        m_Ctx->GetDevice().freeCommandBuffers(m_CommandPool, m_CommandBuffer);
+        m_Ctx->GetDevice().destroyCommandPool(m_CommandPool);
     }
 }

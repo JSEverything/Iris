@@ -1,6 +1,7 @@
 #pragma once
 #include "Iris/Core/EntryPoint.hpp"
 #include "Iris/Core/Application.hpp"
+#include "Iris/Entity/Components/Camera.hpp"
 
 using namespace std::chrono_literals;
 
@@ -14,6 +15,8 @@ namespace Iris {
         ~Editor() override;
 
     private:
+        std::shared_ptr<Window> m_Window;
+        std::shared_ptr<Camera> m_Camera;
     };
 
     Application* CreateApplication(const std::vector<std::string_view>& args) {

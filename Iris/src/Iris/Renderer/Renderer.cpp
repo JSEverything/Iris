@@ -2,51 +2,39 @@
 #include "Iris/Platform/Vulkan/Renderer.hpp"
 #include "Iris/Platform/OpenGL/OpenGLRenderer.hpp"
 #include "Iris/Util/Input.hpp"
-#include <chrono>
 
 using namespace std::chrono_literals;
 
 namespace Iris {
-    Renderer::Renderer(RenderAPI api, const WindowOptions& opts, const std::shared_ptr<Scene>& scene)
-            : m_Window(std::move(std::make_shared<Window>(api, opts))),
-              m_Thread(std::move(std::thread(&Renderer::Run, this))),
-              m_Scene(scene) {
-        Log::Core::Info("Renderer {} created", m_Window->GetTitle());
-    }
-
-    Renderer::~Renderer() {
-        m_Running = false;
-        m_Thread.join();
-        Log::Core::Info("Renderer {} destroyed", m_Window->GetTitle());
+    Renderer::Renderer(const std::shared_ptr<Window>& window) : m_Window(window) {
+        Log::Core::Info("Renderer {} created", window->GetTitle());
+        if (m_Window) {
+            m_Size.x = window->GetWidth();
+            m_Size.y = window->GetHeight();
+        }
     }
 
     std::unique_ptr<Renderer>
-    Renderer::Create(RenderAPI api, const WindowOptions& opts, const std::shared_ptr<Scene>& scene) {
+    Renderer::Create(RenderAPI api, const std::shared_ptr<Window>& window) {
         switch (api) {
             case RenderAPI::Vulkan:
-                return std::make_unique<Vulkan::Renderer>(opts, scene);
+                return std::make_unique<Vulkan::Renderer>(window);
             case RenderAPI::OpenGL:
-                return std::make_unique<OpenGLRenderer>(opts, scene);
+                return std::make_unique<OpenGLRenderer>(window);
             default:
                 return {};
         }
     }
 
-    void Renderer::Run() {
-        // VFT is created AFTER the constructor for some reason
-        // The constructor needs to end execution before any function calls on 'this' work.
-        std::this_thread::sleep_for(10ms);
+    void Renderer::SetScene(const std::shared_ptr<Scene>& scene) {
+        m_Scene = scene;
+    }
 
-        glfwMakeContextCurrent(m_Window->GetGLFWWindow());
-        Init();
+    void Renderer::Present() {
+        ++m_FrameNr;
 
-        while (m_Running) {
-            Draw();
+        if (m_Window) {
             glfwSwapBuffers(m_Window->GetGLFWWindow());
-            if (glfwWindowShouldClose(m_Window->GetGLFWWindow())) break;
-            ++m_FrameNr;
         }
-        Cleanup();
-        m_Running = false;
     }
 }

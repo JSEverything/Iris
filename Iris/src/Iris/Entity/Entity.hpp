@@ -14,6 +14,7 @@ namespace Iris {
         Entity(size_t id, std::shared_ptr<Scene> scene);
 
         void Update(float dt);
+
         Transform& GetTransform() { return m_Transform; };
 
         template <class T>
@@ -34,21 +35,23 @@ namespace Iris {
 
         [[nodiscard]] size_t GetId() const { return m_Id; };
     private:
-        template <class T> requires std::is_base_of_v<Component, T>
+        template <class T>
+        requires std::is_base_of_v<Component, T>
         void UpdateT(float dt) {
-            for (T& item : GetComponents<T>()) {
+            for (T& item: GetComponents<T>()) {
                 item.Update(dt);
             }
         }
+
     private:
         size_t m_Id;
         std::shared_ptr<Scene> m_Scene;
         Transform m_Transform;
 
         ComponentStore<
-            Camera,
-            Material,
-            Mesh
+                Camera,
+                Material,
+                Mesh
         > m_Components;
     };
 }

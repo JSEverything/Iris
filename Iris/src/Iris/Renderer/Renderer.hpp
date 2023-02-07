@@ -2,36 +2,27 @@
 #include "Iris/Renderer/RenderAPI.hpp"
 #include "Iris/Core/Window.hpp"
 #include "Iris/Scene/Scene.hpp"
+#include "Iris/Entity/Components/Camera.hpp"
 
 namespace Iris {
     class Renderer {
     public:
-        virtual ~Renderer();
-
-        [[nodiscard]] bool IsRunning() const { return m_Running; };
-
-        void Close() { m_Running = false; };
-
-        [[nodiscard]] std::shared_ptr<Window> GetWindow() const { return m_Window; };
-
         static std::unique_ptr<Renderer>
-        Create(RenderAPI api, const WindowOptions& opts, const std::shared_ptr<Scene>& scene);
-    protected:
-        explicit Renderer(RenderAPI api, const WindowOptions& opts, const std::shared_ptr<Scene>& scene);
-    private:
-        void Run();
+        Create(RenderAPI api, const std::shared_ptr<Window>& window);
 
-        virtual void Init() = 0;
-        virtual void Draw() = 0;
-        virtual void Cleanup() = 0;
-    public:
-        size_t m_CameraEntityId = -1;
+        virtual void SetScene(const std::shared_ptr<Scene>& scene);
+        virtual void Render(const Camera& camera) = 0;
+
+        [[nodiscard]] std::shared_ptr<Window>& GetWindow() { return m_Window; }
+
+        virtual ~Renderer() = default;
     protected:
-        std::shared_ptr<Window> m_Window;
-        std::thread m_Thread;
-        std::mutex m_Mutex;
-        std::atomic<bool> m_Running = true;
+        explicit Renderer(const std::shared_ptr<Window>& window);
+        virtual void Present();
+    protected:
+        glm::uvec2 m_Size{ 1600, 900 };
         uint64_t m_FrameNr = 0;
+        std::shared_ptr<Window> m_Window{ nullptr };
         std::shared_ptr<Scene> m_Scene;
     };
 }

@@ -6,11 +6,11 @@ namespace Iris {
     Editor::Editor(const ApplicationDetails& details) : Application(details) {
         Iris::Log::App::Info("Editor()");
 
-        auto& camera = m_Scene->CreateObject();
-        camera.AddComponent<Camera>();
-        camera.GetTransform().Move({ 0.f, 0.f, 0.f });
-        camera.GetTransform().Rotate({ 0.f, 0.f, 0.f });
-        m_Scene->AddObject(camera);
+        m_Window = std::make_shared<Window>(RenderAPI::Vulkan, WindowOptions{ "Iris Editor", { 1600, 900 } });
+        m_Renderer = Renderer::Create(RenderAPI::Vulkan, m_Window);
+        m_Renderer->SetScene(m_Scene);
+
+        m_Camera = std::make_shared<Camera>(-1, nullptr, 90.f, 1600.f / 900.f);
 
         auto& floor = m_Scene->CreateObject();
         floor.AddComponent<Mesh>("../Assets/plane.obj");
@@ -25,19 +25,25 @@ namespace Iris {
         axis.GetTransform().SetScale({ 0.3f, 0.3f, 0.3f });
         m_Scene->AddObject(axis);
 
-        auto& cube = m_Scene->CreateObject();
+        /*auto& cube = m_Scene->CreateObject();
         cube.AddComponent<Mesh>("../Assets/cube.obj");
         cube.AddComponent<Material>("../Assets/RustingMetal/");
         cube.GetTransform().SetTranslation({ 2.f, 2.f, 2.f });
-        m_Scene->AddObject(cube);
+        m_Scene->AddObject(cube);*/
     }
 
     void Editor::OnUpdate(float dt) {
-        float mul = dt / 16.667f;
+        m_Scene->Update(dt);
+        m_Camera->Update(dt);
 
+        float mul = dt / 16.667f;
+        m_Renderer->Render(*m_Camera);
     }
 
     Editor::~Editor() {
         Iris::Log::App::Info("~Editor()");
+        m_Renderer.reset();
+        m_Camera.reset();
+        m_Window.reset();
     }
 }

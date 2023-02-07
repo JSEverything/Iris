@@ -1,12 +1,13 @@
 #pragma once
 #include "Iris/Renderer/Vertex.hpp"
+#include "Iris/Platform/Vulkan/Context.hpp"
 #include "Iris/Platform/Vulkan/Buffer.hpp"
 
 namespace Iris::Vulkan {
     class Mesh final {
     public:
-        Mesh(const vk::Device& device, const vk::PhysicalDevice& physicalDevice,
-             size_t parentID, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
+        Mesh(const std::shared_ptr<Context>& ctx, size_t parentID,
+             const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
 
         Mesh(Mesh&& other) noexcept;
 

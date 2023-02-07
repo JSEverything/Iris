@@ -1,13 +1,11 @@
 #include "Mesh.hpp"
 
 namespace Iris::Vulkan {
-    Mesh::Mesh(const vk::Device& device, const vk::PhysicalDevice& physicalDevice, size_t parentID,
+    Mesh::Mesh(const std::shared_ptr<Context>& ctx, size_t parentID,
                const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
             : m_ParentID(parentID), m_VertexCount(vertices.size()), m_IndexCount(indices.size()) {
-        m_VertexBuffer = std::make_unique<Buffer<Vertex>>(
-                device, physicalDevice, vk::BufferUsageFlagBits::eVertexBuffer, vertices);
-        m_IndexBuffer = std::make_unique<Buffer<uint32_t>>(
-                device, physicalDevice, vk::BufferUsageFlagBits::eIndexBuffer, indices);
+        m_VertexBuffer = std::make_unique<Buffer<Vertex>>(ctx, vk::BufferUsageFlagBits::eVertexBuffer, vertices);
+        m_IndexBuffer = std::make_unique<Buffer<uint32_t>>(ctx, vk::BufferUsageFlagBits::eIndexBuffer, indices);
     }
 
     Mesh::Mesh(Mesh&& other) noexcept: m_VertexCount(other.m_VertexCount), m_IndexCount(other.m_IndexCount),

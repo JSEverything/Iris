@@ -2,9 +2,9 @@
 #include <stb_image.h>
 
 namespace Iris::Vulkan {
-    Texture::Texture(const vk::Device& device, const vk::PhysicalDevice& physicalDevice,
-                     const std::shared_ptr<UploadContext>& ctx, std::string_view path, uint32_t desiredChannels)
-            : m_Device(device) {
+    Texture::Texture(std::shared_ptr<Context>  ctx, const std::shared_ptr<UploadContext>& uctx,
+                     std::string_view path, uint32_t desiredChannels)
+            : m_Ctx(std::move(ctx)) {
 
         int width, height, channels;
         float* data = stbi_loadf(path.data(), &width, &height, &channels, static_cast<int>(desiredChannels));
@@ -15,9 +15,8 @@ namespace Iris::Vulkan {
 
         m_Size = { width, height };
 
-        m_StagingBuffer = std::make_unique<Buffer<float>>(device, physicalDevice,
-                                                          vk::BufferUsageFlagBits::eTransferSrc,
-                                                          data, desiredChannels * width * height);
+        m_StagingBuffer = std::make_unique<Buffer<float>>(
+                m_Ctx, vk::BufferUsageFlagBits::eTransferSrc, data, desiredChannels * width * height);
         stbi_image_free(data);
 
         vk::Format imageFormat;
@@ -39,7 +38,7 @@ namespace Iris::Vulkan {
                 std::exit(-1);
         }
 
-        vk::FormatProperties formatProperties = physicalDevice.getFormatProperties(imageFormat);
+        vk::FormatProperties formatProperties = m_Ctx->GetPhysDevice().getFormatProperties(imageFormat);
 
         vk::ImageTiling tiling;
         if (formatProperties.linearTilingFeatures & vk::FormatFeatureFlagBits::eSampledImage) {
@@ -60,10 +59,10 @@ namespace Iris::Vulkan {
                                             vk::SampleCountFlagBits::e1,
                                             tiling,
                                             vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst);
-        m_Image = device.createImage(imageCreateInfo);
+        m_Image = m_Ctx->GetDevice().createImage(imageCreateInfo);
 
-        vk::PhysicalDeviceMemoryProperties memoryProperties = physicalDevice.getMemoryProperties();
-        vk::MemoryRequirements memoryRequirements = device.getImageMemoryRequirements(m_Image);
+        vk::PhysicalDeviceMemoryProperties memoryProperties = m_Ctx->GetPhysDevice().getMemoryProperties();
+        vk::MemoryRequirements memoryRequirements = m_Ctx->GetDevice().getImageMemoryRequirements(m_Image);
         uint32_t typeBits = memoryRequirements.memoryTypeBits;
         auto typeIndex = uint32_t(~0);
         for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++) {
@@ -76,11 +75,11 @@ namespace Iris::Vulkan {
             typeBits >>= 1;
         }
         assert(typeIndex != uint32_t(~0));
-        m_Memory = device.allocateMemory(vk::MemoryAllocateInfo(memoryRequirements.size, typeIndex));
+        m_Memory = m_Ctx->GetDevice().allocateMemory(vk::MemoryAllocateInfo(memoryRequirements.size, typeIndex));
 
-        device.bindImageMemory(m_Image, m_Memory, 0);
+        m_Ctx->GetDevice().bindImageMemory(m_Image, m_Memory, 0);
 
-        m_ImageView = device.createImageView(vk::ImageViewCreateInfo(
+        m_ImageView = m_Ctx->GetDevice().createImageView(vk::ImageViewCreateInfo(
                 vk::ImageViewCreateFlags(), m_Image, vk::ImageViewType::e2D, imageFormat, {},
                 { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }));
 
@@ -94,7 +93,7 @@ namespace Iris::Vulkan {
 
         vk::ImageSubresourceRange imageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1);
 
-        ctx->SubmitCommand([&](vk::CommandBuffer& buf) {
+        uctx->SubmitCommand([&](vk::CommandBuffer& buf) {
             vk::ImageMemoryBarrier imageMemoryBarrier(
                     vk::AccessFlags(), vk::AccessFlagBits::eTransferWrite, vk::ImageLayout::eUndefined,
                     vk::ImageLayout::eTransferDstOptimal, {}, {}, m_Image, imageSubresourceRange);
@@ -104,12 +103,12 @@ namespace Iris::Vulkan {
                                 {}, {}, imageMemoryBarrier);
         });
 
-        ctx->SubmitCommand([&](vk::CommandBuffer& buf) {
+        uctx->SubmitCommand([&](vk::CommandBuffer& buf) {
             buf.copyBufferToImage(m_StagingBuffer->m_Buffer, m_Image, vk::ImageLayout::eTransferDstOptimal,
                                   copyRegion);
 
         });
-        ctx->SubmitCommand([&](vk::CommandBuffer& buf) {
+        uctx->SubmitCommand([&](vk::CommandBuffer& buf) {
             vk::ImageMemoryBarrier imageMemoryBarrier(
                     vk::AccessFlagBits::eTransferWrite, vk::AccessFlags(),
                     vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
@@ -125,18 +124,17 @@ namespace Iris::Vulkan {
 
         m_StagingBuffer.reset();
 
-        m_Sampler = m_Device.createSampler(vk::SamplerCreateInfo(vk::SamplerCreateFlags(
+        m_Sampler = m_Ctx->GetDevice().createSampler(vk::SamplerCreateInfo(vk::SamplerCreateFlags(
 
         )));
     }
 
     Texture::Texture(Texture&& rhs) noexcept: m_Size(rhs.m_Size), m_Sampler(rhs.m_Sampler),
-                                              m_Device(rhs.m_Device),
+                                              m_Ctx(rhs.m_Ctx),
                                               m_StagingBuffer(std::move(rhs.m_StagingBuffer)),
                                               m_Image(rhs.m_Image), m_Memory(rhs.m_Memory),
                                               m_ImageView(rhs.m_ImageView) {
         rhs.m_Sampler = nullptr;
-        rhs.m_Device = nullptr;
         rhs.m_Image = nullptr;
         rhs.m_Memory = nullptr;
         rhs.m_ImageView = nullptr;
@@ -147,10 +145,10 @@ namespace Iris::Vulkan {
     }
 
     Texture::~Texture() {
-        if (!m_Device) return;
-        m_Device.destroySampler(m_Sampler);
-        m_Device.destroyImageView(m_ImageView);
-        m_Device.freeMemory(m_Memory);
-        m_Device.destroyImage(m_Image);
+        if (!m_Ctx) return;
+        m_Ctx->GetDevice().destroySampler(m_Sampler);
+        m_Ctx->GetDevice().destroyImageView(m_ImageView);
+        m_Ctx->GetDevice().freeMemory(m_Memory);
+        m_Ctx->GetDevice().destroyImage(m_Image);
     }
 }

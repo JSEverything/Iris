@@ -9,15 +9,18 @@
 namespace Iris {
     class OpenGLRenderer : public Renderer {
     public:
-        OpenGLRenderer(const WindowOptions& opts, const std::shared_ptr<Scene>& scene);
+        explicit OpenGLRenderer(const std::shared_ptr<Window>& window);
     private:
-        void Init() override;
-        void Draw() override;
-        void Cleanup() override;
+        void Init();
+        void Draw(const Camera& camera);
+
+    public:
+        void Render(const Camera& camera) override;
+        void SetScene(const std::shared_ptr<Scene>& scene) override;
+    private:
 
         void LoadShaders();
         void TransferObjects();
-        void Render();
     private:
         std::shared_ptr<GLShaderProgram> m_ShaderProgram{};
         std::shared_ptr<GLShaderProgram> m_ShaderProgram2{};
