@@ -22,6 +22,7 @@ target_link_libraries(Iris PUBLIC
         vk-bootstrap::vk-bootstrap
         GLAD
         tinyobjloader
+        imgui
         )
 target_precompile_headers(Iris PUBLIC src/pch.hpp)
 

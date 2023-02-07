@@ -4,7 +4,7 @@
 namespace Iris::Vulkan {
     void VkCheck(VkResult result, std::string_view msg) {
         if (result == VK_SUCCESS) return;
-        Iris::Log::Core::Error("VkResult Error: {}\n", msg);
+        Iris::Log::Core::Error("VkResult Error {}: {}\n", result, msg);
         std::exit(1);
     }
 

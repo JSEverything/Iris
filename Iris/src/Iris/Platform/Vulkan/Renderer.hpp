@@ -29,6 +29,7 @@ namespace Iris::Vulkan {
         void InitSyncStructures();
         void InitUniformBuffer();
         void InitPipelines();
+        void InitImGui();
     private:
         std::shared_ptr<Context> m_Ctx{ nullptr };
 
@@ -62,6 +63,8 @@ namespace Iris::Vulkan {
         std::vector<Texture> m_Textures;
 
         std::shared_ptr<UploadContext> m_UploadContext;
+
+        vk::DescriptorPool m_ImGuiPool;
     };
 }
 

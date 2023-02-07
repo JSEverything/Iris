@@ -1,4 +1,7 @@
 #include "Renderer.hpp"
+#include <imgui_impl_vulkan.h>
+#include <imgui_impl_glfw.h>
+#include <imgui.h>
 #include "Iris/Renderer/Vertex.hpp"
 #include "Iris/Platform/Vulkan/Util.hpp"
 #include "Iris/Platform/Vulkan/Texture.hpp"
@@ -15,6 +18,7 @@ namespace Iris::Vulkan {
         InitSyncStructures();
         InitUniformBuffer();
         InitPipelines();
+        InitImGui();
     }
 
     void Renderer::InitSwapchain() {
@@ -240,6 +244,9 @@ namespace Iris::Vulkan {
         *viewProjection = camera.GetProjectionMatrix() * camera.GetViewMatrix();
         m_ViewProjectionBuffer->Unmap();
 
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
         vk::Extent2D extent{ m_Window->GetWidth(), m_Window->GetHeight() };
         vk::ResultValue<uint32_t> currentBuffer = m_Ctx->GetDevice()
                 .acquireNextImageKHR(m_Swapchain, 100000000, m_PresentSemaphore, nullptr);
@@ -273,6 +280,9 @@ namespace Iris::Vulkan {
             mesh.Draw(m_CommandBuffer);
         }
 
+        ImGui::Render();
+        ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_CommandBuffer);
+
         m_CommandBuffer.endRenderPass();
         m_CommandBuffer.end();
 
@@ -293,6 +303,9 @@ namespace Iris::Vulkan {
 
         m_Meshes.clear();
         m_Textures.clear();
+
+        ImGui_ImplVulkan_Shutdown();
+        m_Ctx->GetDevice().destroyDescriptorPool(m_ImGuiPool);
 
         m_Ctx->GetDevice().destroySemaphore(m_PresentSemaphore);
         m_Ctx->GetDevice().destroySemaphore(m_RenderSemaphore);
@@ -358,5 +371,57 @@ namespace Iris::Vulkan {
                 }
             }
         });
+    }
+
+    void Renderer::InitImGui() {
+        std::vector<vk::DescriptorPoolSize> poolSizes = {
+                { vk::DescriptorType::eSampler,              1000 },
+                { vk::DescriptorType::eCombinedImageSampler, 1000 },
+                { vk::DescriptorType::eSampledImage,         1000 },
+                { vk::DescriptorType::eStorageImage,         1000 },
+                { vk::DescriptorType::eUniformTexelBuffer,   1000 },
+                { vk::DescriptorType::eStorageTexelBuffer,   1000 },
+                { vk::DescriptorType::eUniformBuffer,        1000 },
+                { vk::DescriptorType::eStorageBuffer,        1000 },
+                { vk::DescriptorType::eUniformBufferDynamic, 1000 },
+                { vk::DescriptorType::eStorageBufferDynamic, 1000 },
+                { vk::DescriptorType::eInputAttachment,      1000 },
+        };
+
+        m_ImGuiPool = m_Ctx->GetDevice().createDescriptorPool(
+                vk::DescriptorPoolCreateInfo(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1000, poolSizes));
+
+        ImGui::CreateContext();
+        ImGui_ImplVulkan_InitInfo t{};
+        t.Instance = &*m_Ctx->GetInstance();
+        t.DescriptorPool = &*m_ImGuiPool;
+        t.Device = &*m_Ctx->GetDevice();
+        t.PhysicalDevice = &*m_Ctx->GetPhysDevice();
+        t.Queue = &*m_Ctx->GetGraphicsQueue();
+        t.MinImageCount = 2;
+        t.ImageCount = m_SwapchainImages.size();
+        t.QueueFamily = m_Ctx->GetGraphicsQueueFamilyIndex();
+        t.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+
+        ImGui_ImplVulkan_Init(&t, &*m_MainRenderPass);
+
+        {
+            m_CommandBuffer.begin(vk::CommandBufferBeginInfo(
+                    vk::CommandBufferUsageFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit)));
+
+            ImGui_ImplVulkan_CreateFontsTexture(&*m_CommandBuffer);
+
+            m_CommandBuffer.end();
+
+            vk::SubmitInfo submitInfo({}, {}, m_CommandBuffer);
+
+            m_Ctx->GetGraphicsQueue().submit(submitInfo);
+
+            m_Ctx->GetDevice().waitIdle();
+            m_CommandBuffer.reset();
+        }
+
+        ImGui_ImplVulkan_DestroyFontUploadObjects();
+        ImGui_ImplGlfw_InitForVulkan(m_Window->GetGLFWWindow(), true);
     }
 }

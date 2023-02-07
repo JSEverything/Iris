@@ -142,10 +142,20 @@ namespace Iris::Vulkan {
         m_TransferQueueFamilyIndex = tqi.value();
     }
 
-    Context::~Context() {
-        vkb::destroy_device(m_VKBDevice);
-        vkb::destroy_surface(m_VKBInstance, m_Surface);
-        vkb::destroy_instance(m_VKBInstance);
+    vk::Instance Context::GetInstance() const {
+        return m_Instance;
+    }
+
+    vk::SurfaceKHR Context::GetSurface() const {
+        return m_Surface;
+    }
+
+    vk::PhysicalDevice Context::GetPhysDevice() const {
+        return m_PhysicalDevice;
+    }
+
+    vk::Device Context::GetDevice() const {
+        return m_Device;
     }
 
     uint32_t Context::GetGraphicsQueueFamilyIndex() const {
@@ -178,5 +188,11 @@ namespace Iris::Vulkan {
 
     const vk::Queue& Context::GetTransferQueue() const {
         return m_TransferQueue;
+    }
+
+    Context::~Context() {
+        vkb::destroy_device(m_VKBDevice);
+        vkb::destroy_surface(m_VKBInstance, m_Surface);
+        vkb::destroy_instance(m_VKBInstance);
     }
 }

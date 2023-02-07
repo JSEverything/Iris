@@ -9,11 +9,10 @@ namespace Iris::Vulkan {
         explicit Context(const std::shared_ptr<Window>& window);
         virtual ~Context();
 
-        [[nodiscard]] vk::Device GetDevice() const { return m_Device; };
-
-        [[nodiscard]] vk::PhysicalDevice GetPhysDevice() const { return m_PhysicalDevice; };
-
-        [[nodiscard]] vk::SurfaceKHR GetSurface() const { return m_Surface; };
+        [[nodiscard]] vk::Instance GetInstance() const;
+        [[nodiscard]] vk::SurfaceKHR GetSurface() const;
+        [[nodiscard]] vk::PhysicalDevice GetPhysDevice() const;
+        [[nodiscard]] vk::Device GetDevice() const;
 
         [[nodiscard]] uint32_t GetGraphicsQueueFamilyIndex() const;
         [[nodiscard]] uint32_t GetComputeQueueFamilyIndex() const;
