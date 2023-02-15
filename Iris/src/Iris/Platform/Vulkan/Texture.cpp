@@ -2,9 +2,10 @@
 #include <stb_image.h>
 
 namespace Iris::Vulkan {
-    Texture::Texture(std::shared_ptr<Context>  ctx, const std::shared_ptr<UploadContext>& uctx,
-                     std::string_view path, uint32_t desiredChannels)
-            : m_Ctx(std::move(ctx)) {
+    template <>
+    Texture<float>::Texture(std::shared_ptr<Context> ctx, std::shared_ptr<UploadContext> uctx,
+                            std::string_view path, uint32_t desiredChannels)
+            : m_Ctx(std::move(ctx)), m_UCtx(std::move(uctx)) {
 
         int width, height, channels;
         float* data = stbi_loadf(path.data(), &width, &height, &channels, static_cast<int>(desiredChannels));
@@ -75,7 +76,8 @@ namespace Iris::Vulkan {
             typeBits >>= 1;
         }
         assert(typeIndex != uint32_t(~0));
-        m_Memory = m_Ctx->GetDevice().allocateMemory(vk::MemoryAllocateInfo(memoryRequirements.size, typeIndex));
+        m_MemorySize = memoryRequirements.size;
+        m_Memory = m_Ctx->GetDevice().allocateMemory(vk::MemoryAllocateInfo(m_MemorySize, typeIndex));
 
         m_Ctx->GetDevice().bindImageMemory(m_Image, m_Memory, 0);
 
@@ -93,7 +95,7 @@ namespace Iris::Vulkan {
 
         vk::ImageSubresourceRange imageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1);
 
-        uctx->SubmitCommand([&](vk::CommandBuffer& buf) {
+        m_UCtx->SubmitCommand([&](vk::CommandBuffer& buf) {
             vk::ImageMemoryBarrier imageMemoryBarrier(
                     vk::AccessFlags(), vk::AccessFlagBits::eTransferWrite, vk::ImageLayout::eUndefined,
                     vk::ImageLayout::eTransferDstOptimal, {}, {}, m_Image, imageSubresourceRange);
@@ -103,12 +105,12 @@ namespace Iris::Vulkan {
                                 {}, {}, imageMemoryBarrier);
         });
 
-        uctx->SubmitCommand([&](vk::CommandBuffer& buf) {
+        m_UCtx->SubmitCommand([&](vk::CommandBuffer& buf) {
             buf.copyBufferToImage(m_StagingBuffer->m_Buffer, m_Image, vk::ImageLayout::eTransferDstOptimal,
                                   copyRegion);
 
         });
-        uctx->SubmitCommand([&](vk::CommandBuffer& buf) {
+        m_UCtx->SubmitCommand([&](vk::CommandBuffer& buf) {
             vk::ImageMemoryBarrier imageMemoryBarrier(
                     vk::AccessFlagBits::eTransferWrite, vk::AccessFlags(),
                     vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
@@ -127,28 +129,5 @@ namespace Iris::Vulkan {
         m_Sampler = m_Ctx->GetDevice().createSampler(vk::SamplerCreateInfo(vk::SamplerCreateFlags(
 
         )));
-    }
-
-    Texture::Texture(Texture&& rhs) noexcept: m_Size(rhs.m_Size), m_Sampler(rhs.m_Sampler),
-                                              m_Ctx(rhs.m_Ctx),
-                                              m_StagingBuffer(std::move(rhs.m_StagingBuffer)),
-                                              m_Image(rhs.m_Image), m_Memory(rhs.m_Memory),
-                                              m_ImageView(rhs.m_ImageView) {
-        rhs.m_Sampler = nullptr;
-        rhs.m_Image = nullptr;
-        rhs.m_Memory = nullptr;
-        rhs.m_ImageView = nullptr;
-    }
-
-    vk::DescriptorImageInfo Texture::GetDescriptor() const {
-        return { m_Sampler, m_ImageView, vk::ImageLayout::eShaderReadOnlyOptimal };
-    }
-
-    Texture::~Texture() {
-        if (!m_Ctx) return;
-        m_Ctx->GetDevice().destroySampler(m_Sampler);
-        m_Ctx->GetDevice().destroyImageView(m_ImageView);
-        m_Ctx->GetDevice().freeMemory(m_Memory);
-        m_Ctx->GetDevice().destroyImage(m_Image);
     }
 }

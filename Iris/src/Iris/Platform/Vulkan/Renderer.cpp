@@ -5,13 +5,17 @@
 #include "Iris/Renderer/Vertex.hpp"
 #include "Iris/Platform/Vulkan/Util.hpp"
 #include "Iris/Platform/Vulkan/Texture.hpp"
+#include "Iris/Platform/Vulkan/PushConstants.hpp"
+#include "Iris/Util/Input.hpp"
 
 namespace Iris::Vulkan {
     Renderer::Renderer(const std::shared_ptr<Window>& window) : Iris::Renderer(window) {
         m_Ctx = std::make_shared<Context>(window);
+        m_UploadContext = std::make_shared<UploadContext>(m_Ctx);
 
         InitSwapchain();
         InitDepthBuffer();
+        InitIDBuffer();
         InitRenderPass();
         InitFramebuffers();
         InitCommandBuffers();
@@ -19,6 +23,17 @@ namespace Iris::Vulkan {
         InitUniformBuffer();
         InitPipelines();
         InitImGui();
+
+        Input::Get().on<Key>([&](int button, KeyMods mods) {
+            if (button != GLFW_MOUSE_BUTTON_1) return;
+            glm::uvec2 pos = Input::GetMousePos();
+
+            m_IDTexture->CopyToStagingBuffer();
+            auto data = m_IDTexture->MapStagingBuffer();
+            uint32_t id = data[pos.y * m_Size.x + pos.x];
+            Log::Core::Info("Pixel value: {}", id);
+            m_IDTexture->UnmapStagingBuffer();
+        });
     }
 
     void Renderer::InitSwapchain() {
@@ -147,8 +162,15 @@ namespace Iris::Vulkan {
                 { vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1 }));
     }
 
+    void Renderer::InitIDBuffer() {
+        m_IDTexture = std::make_shared<Texture<uint32_t>>(m_Ctx, m_UploadContext, m_Size,
+                                                          vk::Format::eR32Uint,
+                                                          vk::ImageUsageFlagBits::eColorAttachment |
+                                                          vk::ImageUsageFlagBits::eTransferSrc);
+    }
+
     void Renderer::InitRenderPass() {
-        std::array<vk::AttachmentDescription, 2> attachmentDescriptions;
+        std::array<vk::AttachmentDescription, 3> attachmentDescriptions;
         attachmentDescriptions[0] = vk::AttachmentDescription(vk::AttachmentDescriptionFlags(),
                                                               m_SwapchainFormat,
                                                               vk::SampleCountFlagBits::e1,
@@ -168,10 +190,24 @@ namespace Iris::Vulkan {
                                                               vk::ImageLayout::eUndefined,
                                                               vk::ImageLayout::eDepthStencilAttachmentOptimal);
 
+        attachmentDescriptions[2] = vk::AttachmentDescription(vk::AttachmentDescriptionFlags(),
+                                                              vk::Format::eR32Uint,
+                                                              vk::SampleCountFlagBits::e1,
+                                                              vk::AttachmentLoadOp::eClear,
+                                                              vk::AttachmentStoreOp::eStore,
+                                                              vk::AttachmentLoadOp::eDontCare,
+                                                              vk::AttachmentStoreOp::eDontCare,
+                                                              vk::ImageLayout::eUndefined,
+                                                              vk::ImageLayout::eColorAttachmentOptimal);
+
         vk::AttachmentReference colorReference(0, vk::ImageLayout::eColorAttachmentOptimal);
         vk::AttachmentReference depthReference(1, vk::ImageLayout::eDepthStencilAttachmentOptimal);
+        vk::AttachmentReference idReference(2, vk::ImageLayout::eColorAttachmentOptimal);
+
+        std::array<vk::AttachmentReference, 2> colorAttachments = { colorReference, idReference };
+
         vk::SubpassDescription subpass(vk::SubpassDescriptionFlags(), vk::PipelineBindPoint::eGraphics, {},
-                                       colorReference, {}, &depthReference);
+                                       colorAttachments, {}, &depthReference);
 
         m_MainRenderPass = m_Ctx->GetDevice().createRenderPass(
                 vk::RenderPassCreateInfo(vk::RenderPassCreateFlags(), attachmentDescriptions, subpass));
@@ -180,8 +216,9 @@ namespace Iris::Vulkan {
     void Renderer::InitFramebuffers() {
         m_Framebuffers.reserve(m_SwapchainImageViews.size());
 
-        std::array<vk::ImageView, 2> attachments;
+        std::array<vk::ImageView, 3> attachments;
         attachments[1] = m_DepthImageView;
+        attachments[2] = m_IDTexture->GetDescriptor().imageView;
 
         auto framebuffer_info = vk::FramebufferCreateInfo(vk::FramebufferCreateFlags(), m_MainRenderPass, attachments,
                                                           m_SwapchainExtent.width, m_SwapchainExtent.height, 1);
@@ -198,8 +235,6 @@ namespace Iris::Vulkan {
                                                              m_Ctx->GetGraphicsQueueFamilyIndex()));
         m_CommandBuffer = m_Ctx->GetDevice().allocateCommandBuffers(
                 vk::CommandBufferAllocateInfo(m_CommandPool, vk::CommandBufferLevel::ePrimary, 1)).front();
-
-        m_UploadContext = std::make_shared<UploadContext>(m_Ctx);
     }
 
     void Renderer::InitSyncStructures() {
@@ -219,17 +254,12 @@ namespace Iris::Vulkan {
         m_PipelineBuilder->SetVertexInputAttributes(
                         vk::VertexInputBindingDescription(0, sizeof(Vertex)),
                         parseVertexDescription(Vertex::GetDescription(), 0))
-                .AddVertexShader("./Shaders/PBR.vert.spv")
-                .AddFragmentShader("./Shaders/PBR.frag.spv")
-                .AddPushConstant(vk::ShaderStageFlagBits::eVertex, sizeof(glm::mat4))   // view-projection matrix
-                .AddPushConstant(vk::ShaderStageFlagBits::eFragment, sizeof(uint32_t))  // texture id
-                .AddUniform(0, 0, vk::ShaderStageFlagBits::eVertex)         // view-projection
-                .AddImage(1, 0, vk::ShaderStageFlagBits::eFragment, 1024)   // albedo
-                .AddImage(1, 1, vk::ShaderStageFlagBits::eFragment, 1024)   // normal
-                .AddImage(1, 2, vk::ShaderStageFlagBits::eFragment, 1024)   // metalic
-                .AddImage(1, 3, vk::ShaderStageFlagBits::eFragment, 1024)   // height
-                .AddImage(1, 4, vk::ShaderStageFlagBits::eFragment, 1024)   // roughness
-                .AddImage(1, 5, vk::ShaderStageFlagBits::eFragment, 1024);  // ao
+                .AddVertexShader("./Shaders/UberShader.vert.spv")
+                .AddFragmentShader("./Shaders/UberShader.frag.spv")
+                .AddPushConstant(
+                        vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, sizeof(PushConstants))
+                .AddUniform(0, 0, vk::ShaderStageFlagBits::eVertex)          // view-projection
+                .AddImage(1, 0, vk::ShaderStageFlagBits::eFragment, 1024);   // textures
 
         m_Pipeline = m_PipelineBuilder->Build(m_MainRenderPass);
 
@@ -252,9 +282,10 @@ namespace Iris::Vulkan {
                 .acquireNextImageKHR(m_Swapchain, 100000000, m_PresentSemaphore, nullptr);
         m_CommandBuffer.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlags()));
 
-        std::array<vk::ClearValue, 2> clearValues;
+        std::array<vk::ClearValue, 3> clearValues;
         clearValues[0].color = vk::ClearColorValue(std::array<float, 4>{ 0.2f, 0.2f, 0.2f, 1.f });
         clearValues[1].depthStencil = vk::ClearDepthStencilValue(1.0f, 0);
+        clearValues[2].color = vk::ClearColorValue(std::array<uint32_t, 4>{ 0, 0, 0, 0 });
 
         vk::RenderPassBeginInfo renderPassBeginInfo(
                 m_MainRenderPass, m_Framebuffers[currentBuffer.value],
@@ -272,11 +303,14 @@ namespace Iris::Vulkan {
                 vk::PipelineBindPoint::eGraphics, m_Pipeline->pipelineLayout, 0, m_Pipeline->descriptorSets, nullptr);
 
         for (auto& mesh: m_Meshes) {
-            m_CommandBuffer.pushConstants<glm::mat4>(m_Pipeline->pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0u,
-                                                     m_Scene->GetEntity(mesh.GetParentID()).GetComponent<Iris::Mesh>()
-                                                             .GetModelMatrix());
-            m_CommandBuffer.pushConstants<uint32_t>(m_Pipeline->pipelineLayout, vk::ShaderStageFlagBits::eFragment, 64u,
-                                                    mesh.GetParentID());
+            auto entityID = mesh.GetParentID();
+            m_CommandBuffer.pushConstants<PushConstants>(
+                    m_Pipeline->pipelineLayout, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
+                    0u, PushConstants{
+                            .modelMat = m_Scene->GetEntity(entityID).GetComponent<Iris::Mesh>().GetModelMatrix(),
+                            .objectID = static_cast<uint32_t>(entityID),
+                            .isBillboard = false
+                    });
             mesh.Draw(m_CommandBuffer);
         }
 
@@ -322,6 +356,7 @@ namespace Iris::Vulkan {
         m_Ctx->GetDevice().destroyImageView(m_DepthImageView);
         m_Ctx->GetDevice().freeMemory(m_DepthMemory);
         m_Ctx->GetDevice().destroyImage(m_DepthImage);
+        m_IDTexture.reset();
 
         for (auto& imageView: m_SwapchainImageViews) {
             m_Ctx->GetDevice().destroyImageView(imageView);
@@ -348,27 +383,8 @@ namespace Iris::Vulkan {
 
             if (!m_Scene->GetEntity(entity).GetComponents<Material>().empty()) {
                 auto& material = m_Scene->GetEntity(entity).GetComponent<Material>();
-                if (material.getTexture().ends_with("/")) {
-                    m_Textures.emplace_back(m_Ctx, m_UploadContext,
-                                            material.getTexture() + "albedo.png");
-                    m_Textures.emplace_back(m_Ctx, m_UploadContext,
-                                            material.getTexture() + "normal.png");
-                    m_Textures.emplace_back(m_Ctx, m_UploadContext,
-                                            material.getTexture() + "metallic.png", 1);
-                    m_Textures.emplace_back(m_Ctx, m_UploadContext,
-                                            material.getTexture() + "height.png", 1);
-                    m_Textures.emplace_back(m_Ctx, m_UploadContext,
-                                            material.getTexture() + "roughness.png", 1);
-                    m_Textures.emplace_back(m_Ctx, m_UploadContext,
-                                            material.getTexture() + "ao.png", 1);
-                    for (uint32_t i = 0; i < 6; ++i) {
-                        m_Pipeline
-                                ->UpdateImage(1, i, m_Textures[m_Textures.size() - 6 + i].GetDescriptor(), entity);
-                    }
-                } else {
-                    m_Textures.emplace_back(m_Ctx, m_UploadContext, material.getTexture());
-                    m_Pipeline->UpdateImage(1, 0, m_Textures[m_Textures.size() - 1].GetDescriptor(), entity);
-                }
+                m_Textures.emplace_back(m_Ctx, m_UploadContext, material.getTexture());
+                m_Pipeline->UpdateImage(1, 0, m_Textures[m_Textures.size() - 1].GetDescriptor(), entity);
             }
         });
     }

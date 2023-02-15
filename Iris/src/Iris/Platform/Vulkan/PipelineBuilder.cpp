@@ -161,11 +161,15 @@ namespace Iris::Vulkan {
                     vk::BlendOp::eAdd,       // alphaBlendOp
                     colorComponentFlags      // colorWriteMask
             );
+
+            std::array<vk::PipelineColorBlendAttachmentState, 2> pipelineColorBlendAttachments = {
+                    pipelineColorBlendAttachmentState, pipelineColorBlendAttachmentState };
+
             vk::PipelineColorBlendStateCreateInfo pipelineColorBlendStateCreateInfo(
                     vk::PipelineColorBlendStateCreateFlags(),  // flags
                     false,                                     // logicOpEnable
                     vk::LogicOp::eNoOp,                        // logicOp
-                    pipelineColorBlendAttachmentState,         // attachments
+                    pipelineColorBlendAttachments,             // attachments
                     { { 1.0f, 1.0f, 1.0f, 1.0f } }             // blendConstants
             );
 

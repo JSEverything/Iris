@@ -23,6 +23,7 @@ namespace Iris::Vulkan {
 
         void InitSwapchain();
         void InitDepthBuffer();
+        void InitIDBuffer();
         void InitRenderPass();
         void InitFramebuffers();
         void InitCommandBuffers();
@@ -44,6 +45,7 @@ namespace Iris::Vulkan {
         vk::DeviceMemory m_DepthMemory;
         vk::Image m_DepthImage;
         vk::ImageView m_DepthImageView;
+        std::shared_ptr<Texture<uint32_t>> m_IDTexture;
 
         vk::RenderPass m_MainRenderPass;
 
@@ -60,7 +62,7 @@ namespace Iris::Vulkan {
         std::unique_ptr<PipelineBuilder::Pipeline> m_Pipeline;
 
         std::vector<Mesh> m_Meshes;
-        std::vector<Texture> m_Textures;
+        std::vector<Texture<float>> m_Textures;
 
         std::shared_ptr<UploadContext> m_UploadContext;
 
