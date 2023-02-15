@@ -36,7 +36,7 @@ namespace Iris {
         m_Scene->Update(dt);
         m_Camera->Update(dt);
 
-        float mul = dt / 16.667f;
+        //float mul = dt / 16.667f;
         m_Renderer->Render(*m_Camera);
     }
 
