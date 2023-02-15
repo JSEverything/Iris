@@ -72,8 +72,13 @@ namespace Iris {
 
         glfwSetCursorPosCallback(m_Window, [](GLFWwindow* GLFWWindow, double x, double y) {
             auto* that = static_cast<Window*>(glfwGetWindowUserPointer(GLFWWindow));
+            glm::vec2 delta = that->m_PreviousCursorPos - glm::vec2{ x, y };
+            auto abs = glm::abs(delta);
+            // ignoring small movements, this can get called VERY often and cause big performance drops
+            if (abs.x < 1.f && abs.y < 1.f) return;
+
             auto input = Input::Get();
-            input.emit<MouseMove>(that->m_PreviousCursorPos - glm::vec2{ x, y });
+            input.emit<MouseMove>(delta);
             that->m_PreviousCursorPos = { x, y };
             input.emit<MousePosition>(glm::vec2{ x, y });
         });
