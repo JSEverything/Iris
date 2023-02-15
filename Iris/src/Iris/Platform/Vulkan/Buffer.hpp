@@ -13,8 +13,8 @@ namespace Iris::Vulkan {
         Buffer(std::shared_ptr<Context> ctx, vk::BufferUsageFlags flags,
                const T& data) : Buffer(ctx, flags, &data) {}
 
-        Buffer(std::shared_ptr<Context> ctx, vk::BufferUsageFlags flags,
-               const T* data, size_t count = 1) : m_Ctx(std::move(ctx)), m_Size(count * sizeof(T)) {
+        explicit Buffer(std::shared_ptr<Context> ctx, vk::BufferUsageFlags flags,
+                        size_t count = 1) : m_Ctx(std::move(ctx)), m_Size(count * sizeof(T)) {
             m_Buffer = m_Ctx->GetDevice().createBuffer(vk::BufferCreateInfo(vk::BufferCreateFlags(), m_Size, flags));
 
             m_MemoryRequirements = m_Ctx->GetDevice().getBufferMemoryRequirements(m_Buffer);
@@ -24,10 +24,14 @@ namespace Iris::Vulkan {
                                                 vk::MemoryPropertyFlagBits::eHostCoherent);
             m_Memory = m_Ctx->GetDevice().allocateMemory(vk::MemoryAllocateInfo(m_MemoryRequirements.size, typeIndex));
 
+            m_Ctx->GetDevice().bindBufferMemory(m_Buffer, m_Memory, 0);
+        }
+
+        Buffer(std::shared_ptr<Context> ctx, vk::BufferUsageFlags flags,
+               const T* data, size_t count = 1) : Buffer(ctx, flags, count) {
             auto* pData = Map();
             memcpy(pData, data, m_Size);
             Unmap();
-            m_Ctx->GetDevice().bindBufferMemory(m_Buffer, m_Memory, 0);
         }
 
         [[nodiscard]] vk::DescriptorBufferInfo GetDescriptorBufferInfo() const {
