@@ -2,7 +2,7 @@
 
 namespace Iris {
     Entity& Scene::CreateObject() {
-        m_Entities.emplace_back(Entity(m_Entities.size(), std::shared_ptr<Scene>(m_This)));
+        m_Entities.emplace_back(m_Entities.size(), std::shared_ptr<Scene>(m_This));
         return m_Entities[m_Entities.size() - 1];
     }
 
@@ -15,7 +15,7 @@ namespace Iris {
     }
 
     void Scene::Update(float dt) {
-        for (Entity& entity : m_Entities) {
+        for (Entity& entity: m_Entities) {
             entity.Update(dt);
         }
     }
