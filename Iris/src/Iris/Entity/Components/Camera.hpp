@@ -13,6 +13,10 @@ namespace Iris {
         void SetViewportSize(glm::vec2 size);
         void Update(float dt) override;
 
+        [[nodiscard]] glm::vec3 GetPosition() const;
+        [[nodiscard]] glm::vec3 GetUpDirection() const;
+        [[nodiscard]] glm::vec3 GetForwardDirection() const;
+        [[nodiscard]] glm::vec3 GetRightDirection() const;
         [[nodiscard]] glm::mat4 GetProjectionMatrix() const;
         [[nodiscard]] glm::mat4 GetViewMatrix() const;
     private:
@@ -25,11 +29,7 @@ namespace Iris {
         void MousePan(glm::vec2 delta);
         void MouseRotate(glm::vec2 delta);
         void MouseZoom(float delta);
-
-        [[nodiscard]] glm::vec3 GetUpDirection() const;
-        [[nodiscard]] glm::vec3 GetForwardDirection() const;
-        [[nodiscard]] glm::vec3 GetRightDirection() const;
-        [[nodiscard]] glm::vec3 CalculatePosition() const;
+        
         [[nodiscard]] glm::quat GetOrientation() const;
 
     private:

@@ -8,6 +8,7 @@
 #include "Iris/Platform/Vulkan/Mesh.hpp"
 #include "Iris/Platform/Vulkan/UploadContext.hpp"
 #include "Iris/Platform/Vulkan/Texture.hpp"
+#include "Iris/Platform/Vulkan/CameraData.hpp"
 
 namespace Iris::Vulkan {
     class Renderer final : public Iris::Renderer {
@@ -56,7 +57,7 @@ namespace Iris::Vulkan {
         vk::Semaphore m_RenderSemaphore;
         vk::Semaphore m_PresentSemaphore;
 
-        std::unique_ptr<Buffer<glm::mat4>> m_ViewProjectionBuffer;
+        std::unique_ptr<Buffer<CameraData>> m_CameraDataBuffer;
 
         std::unique_ptr<PipelineBuilder> m_PipelineBuilder;
         std::unique_ptr<PipelineBuilder::Pipeline> m_Pipeline;

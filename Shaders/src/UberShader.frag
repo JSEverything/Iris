@@ -5,6 +5,16 @@ layout (location = 0) in vec3 inPosition;
 layout (location = 1) in vec3 inNormal;
 layout (location = 2) in vec2 inUV;
 
+layout (set = 0, binding = 0) uniform CameraData {
+    vec4 position;
+    vec4 forward;
+    vec4 up;
+    vec4 right;
+    mat4 view;
+    mat4 projection;
+    mat4 viewProjection;
+};
+
 layout (set = 1, binding = 0) uniform sampler2D textures[];
 
 layout (location = 0) out vec4 outColor;

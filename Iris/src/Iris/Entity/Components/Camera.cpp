@@ -57,11 +57,11 @@ namespace Iris {
     void Camera::UpdateView() {
         if (m_Scene) {
             auto& transform = m_Scene->GetEntity(m_ParentId).GetTransform();
-            transform.SetTranslation(CalculatePosition());
+            transform.SetTranslation(GetPosition());
         }
 
         glm::quat orientation = GetOrientation();
-        m_View = glm::translate(glm::mat4(1.f), CalculatePosition()) * glm::toMat4(orientation);
+        m_View = glm::translate(glm::mat4(1.f), GetPosition()) * glm::toMat4(orientation);
         m_View = glm::inverse(m_View);
     }
 
@@ -113,7 +113,7 @@ namespace Iris {
         return glm::rotate(GetOrientation(), { 1.f, 0.f, 0.f });
     }
 
-    glm::vec3 Camera::CalculatePosition() const {
+    glm::vec3 Camera::GetPosition() const {
         return m_FocalPoint - GetForwardDirection() * m_Distance;
     }
 

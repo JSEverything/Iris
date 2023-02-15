@@ -6,7 +6,13 @@ layout (location = 1) in vec4 inColor;
 layout (location = 2) in vec4 inNormal;
 layout (location = 3) in vec2 inUV;
 
-layout (set = 0, binding = 0) uniform ViewProjection {
+layout (set = 0, binding = 0) uniform CameraData {
+    vec4 position;
+    vec4 forward;
+    vec4 up;
+    vec4 right;
+    mat4 view;
+    mat4 projection;
     mat4 viewProjection;
 };
 

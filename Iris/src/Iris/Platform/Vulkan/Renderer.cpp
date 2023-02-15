@@ -244,35 +244,42 @@ namespace Iris::Vulkan {
     }
 
     void Renderer::InitUniformBuffer() {
-        m_ViewProjectionBuffer = std::make_unique<Buffer<glm::mat4>>(
-                m_Ctx, vk::BufferUsageFlagBits::eUniformBuffer, glm::mat4(1.f));
+        m_CameraDataBuffer = std::make_unique<Buffer<CameraData>>(
+                m_Ctx, vk::BufferUsageFlagBits::eUniformBuffer, CameraData{});
     }
 
     void Renderer::InitPipelines() {
         m_PipelineBuilder = std::make_unique<PipelineBuilder>(m_Ctx->GetDevice());
+
+        auto shaderStagesVF = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
 
         m_PipelineBuilder->SetVertexInputAttributes(
                         vk::VertexInputBindingDescription(0, sizeof(Vertex)),
                         parseVertexDescription(Vertex::GetDescription(), 0))
                 .AddVertexShader("./Shaders/UberShader.vert.spv")
                 .AddFragmentShader("./Shaders/UberShader.frag.spv")
-                .AddPushConstant(
-                        vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, sizeof(PushConstants))
-                .AddUniform(0, 0, vk::ShaderStageFlagBits::eVertex)          // view-projection
+                .AddPushConstant(shaderStagesVF, sizeof(PushConstants))
+                .AddUniform(0, 0, shaderStagesVF)                            // camera data
                 .AddImage(1, 0, vk::ShaderStageFlagBits::eFragment, 1024);   // textures
 
         m_Pipeline = m_PipelineBuilder->Build(m_MainRenderPass);
 
-        m_Pipeline->UpdateBuffer(0, 0, m_ViewProjectionBuffer->GetDescriptorBufferInfo());
+        m_Pipeline->UpdateBuffer(0, 0, m_CameraDataBuffer->GetDescriptorBufferInfo());
     }
 
     void Renderer::Render(const Camera& camera) {
         while (vk::Result::eTimeout == m_Ctx->GetDevice().waitForFences(m_RenderFence, VK_TRUE, 100000000));
         VkCheck(m_Ctx->GetDevice().resetFences(1, &m_RenderFence), "Reset Draw Fence");
 
-        auto* viewProjection = m_ViewProjectionBuffer->Map();
-        *viewProjection = camera.GetProjectionMatrix() * camera.GetViewMatrix();
-        m_ViewProjectionBuffer->Unmap();
+        auto* cameraData = m_CameraDataBuffer->Map();
+        cameraData->position = glm::vec4(camera.GetPosition(), 1.f);
+        cameraData->forward = glm::vec4(camera.GetForwardDirection(), 1.f);
+        cameraData->up = glm::vec4(camera.GetUpDirection(), 1.f);
+        cameraData->right = glm::vec4(camera.GetRightDirection(), 1.f);
+        cameraData->view = camera.GetViewMatrix();
+        cameraData->projection = camera.GetProjectionMatrix();
+        cameraData->viewProjection = camera.GetProjectionMatrix() * camera.GetViewMatrix();
+        m_CameraDataBuffer->Unmap();
 
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
@@ -345,7 +352,7 @@ namespace Iris::Vulkan {
         m_Ctx->GetDevice().destroySemaphore(m_RenderSemaphore);
         m_Ctx->GetDevice().destroyFence(m_RenderFence);
 
-        m_ViewProjectionBuffer.reset();
+        m_CameraDataBuffer.reset();
 
         for (auto const& framebuffer: m_Framebuffers) {
             m_Ctx->GetDevice().destroyFramebuffer(framebuffer);
