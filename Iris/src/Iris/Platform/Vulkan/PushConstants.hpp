@@ -6,6 +6,5 @@ namespace Iris::Vulkan {
         glm::mat4 modelMat;
         uint32_t objectID;
         //uint32_t materialID;
-        bool isBillboard;
     };
 }

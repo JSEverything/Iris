@@ -34,6 +34,9 @@ namespace Iris::Vulkan {
             Log::Core::Info("Pixel value: {}", id);
             m_IDTexture->UnmapStagingBuffer();
         });
+
+        m_Textures.emplace_back(m_Ctx, m_UploadContext, "../Assets/Cube2.png", 4);
+        m_BillboardPipeline->UpdateImage(1, 0, m_Textures[m_Textures.size() - 1].GetDescriptor(), 0);
     }
 
     void Renderer::InitSwapchain() {
@@ -261,10 +264,18 @@ namespace Iris::Vulkan {
                 .AddPushConstant(shaderStagesVF, sizeof(PushConstants))
                 .AddUniform(0, 0, shaderStagesVF)                            // camera data
                 .AddImage(1, 0, vk::ShaderStageFlagBits::eFragment, 1024);   // textures
-
         m_Pipeline = m_PipelineBuilder->Build(m_MainRenderPass);
 
+        m_PipelineBuilder->Clear()
+                .AddVertexShader("./Shaders/Billboard.vert.spv")
+                .AddFragmentShader("./Shaders/Billboard.frag.spv")
+                .AddPushConstant(shaderStagesVF, sizeof(PushConstants))
+                .AddUniform(0, 0, shaderStagesVF)                            // camera data
+                .AddImage(1, 0, vk::ShaderStageFlagBits::eFragment, 1024);   // textures
+        m_BillboardPipeline = m_PipelineBuilder->Build(m_MainRenderPass);
+
         m_Pipeline->UpdateBuffer(0, 0, m_CameraDataBuffer->GetDescriptorBufferInfo());
+        m_BillboardPipeline->UpdateBuffer(0, 0, m_CameraDataBuffer->GetDescriptorBufferInfo());
     }
 
     void Renderer::Render(const Camera& camera) {
@@ -273,9 +284,6 @@ namespace Iris::Vulkan {
 
         auto* cameraData = m_CameraDataBuffer->Map();
         cameraData->position = glm::vec4(camera.GetPosition(), 1.f);
-        cameraData->forward = glm::vec4(camera.GetForwardDirection(), 1.f);
-        cameraData->up = glm::vec4(camera.GetUpDirection(), 1.f);
-        cameraData->right = glm::vec4(camera.GetRightDirection(), 1.f);
         cameraData->view = camera.GetViewMatrix();
         cameraData->projection = camera.GetProjectionMatrix();
         cameraData->viewProjection = camera.GetProjectionMatrix() * camera.GetViewMatrix();
@@ -315,11 +323,24 @@ namespace Iris::Vulkan {
                     m_Pipeline->pipelineLayout, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
                     0u, PushConstants{
                             .modelMat = m_Scene->GetEntity(entityID).GetComponent<Iris::Mesh>().GetModelMatrix(),
-                            .objectID = static_cast<uint32_t>(entityID),
-                            .isBillboard = false
+                            .objectID = static_cast<uint32_t>(entityID)
                     });
             mesh.Draw(m_CommandBuffer);
         }
+
+        m_CommandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_BillboardPipeline->pipeline);
+        m_CommandBuffer.bindDescriptorSets(
+                vk::PipelineBindPoint::eGraphics, m_BillboardPipeline->pipelineLayout, 0,
+                m_BillboardPipeline->descriptorSets, nullptr);
+
+
+        m_CommandBuffer.pushConstants<PushConstants>(
+                m_Pipeline->pipelineLayout, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
+                0u, PushConstants{
+                        .modelMat = glm::translate(glm::mat4(1.f), glm::vec3(3.f, 3.f, 0.f)),
+                        .objectID = 0
+                });
+        m_CommandBuffer.draw(6, 1, 0, 0);
 
         ImGui::Render();
         ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_CommandBuffer);
@@ -375,6 +396,7 @@ namespace Iris::Vulkan {
         m_Ctx->GetDevice().destroyCommandPool(m_CommandPool);
 
         m_Pipeline.reset();
+        m_BillboardPipeline.reset();
         m_PipelineBuilder.reset();
 
         m_Ctx.reset();
@@ -390,8 +412,9 @@ namespace Iris::Vulkan {
 
             if (!m_Scene->GetEntity(entity).GetComponents<Material>().empty()) {
                 auto& material = m_Scene->GetEntity(entity).GetComponent<Material>();
-                m_Textures.emplace_back(m_Ctx, m_UploadContext, material.getTexture());
+                m_Textures.emplace_back(m_Ctx, m_UploadContext, material.getTexture(), 4);
                 m_Pipeline->UpdateImage(1, 0, m_Textures[m_Textures.size() - 1].GetDescriptor(), entity);
+                m_BillboardPipeline->UpdateImage(1, 0, m_Textures[m_Textures.size() - 1].GetDescriptor(), entity);
             }
         });
     }

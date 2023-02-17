@@ -26,9 +26,9 @@ void main()
 
     ivec2 size = textureSize(textures[pc.objectID], 0);
     if (size.x + size.y <= 2) {
-        outColor = vec4(0.f, 0.5f, 0.f, 1.f); // empty texture
+        outColor = vec4(0.7f, 0.f, 0.7f, 1.f); // empty texture
         return;
     }
-
-    outColor = vec4(texture(textures[pc.objectID], inUV).rgb, 1.f);
+    outColor = texture(textures[pc.objectID], inUV).rgba;
+    //if (outColor.a < 1.f) discard;
 }

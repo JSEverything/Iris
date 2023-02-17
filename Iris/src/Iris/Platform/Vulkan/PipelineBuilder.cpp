@@ -151,7 +151,19 @@ namespace Iris::Vulkan {
             vk::ColorComponentFlags colorComponentFlags(
                     vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB |
                     vk::ColorComponentFlagBits::eA);
-            vk::PipelineColorBlendAttachmentState pipelineColorBlendAttachmentState(
+
+            vk::PipelineColorBlendAttachmentState pipelineColorBlendAttachmentStateEnabled(
+                    true,                               // blendEnable
+                    vk::BlendFactor::eSrcAlpha,         // srcColorBlendFactor
+                    vk::BlendFactor::eOneMinusSrcAlpha,              // dstColorBlendFactor
+                    vk::BlendOp::eAdd,                  // colorBlendOp
+                    vk::BlendFactor::eSrcAlpha,             // srcAlphaBlendFactor
+                    vk::BlendFactor::eOneMinusSrcAlpha, // dstAlphaBlendFactor
+                    vk::BlendOp::eAdd,                  // alphaBlendOp
+                    colorComponentFlags                 // colorWriteMask
+            );
+
+            vk::PipelineColorBlendAttachmentState pipelineColorBlendAttachmentStateDisabled(
                     false,                   // blendEnable
                     vk::BlendFactor::eZero,  // srcColorBlendFactor
                     vk::BlendFactor::eZero,  // dstColorBlendFactor
@@ -163,7 +175,7 @@ namespace Iris::Vulkan {
             );
 
             std::array<vk::PipelineColorBlendAttachmentState, 2> pipelineColorBlendAttachments = {
-                    pipelineColorBlendAttachmentState, pipelineColorBlendAttachmentState };
+                    pipelineColorBlendAttachmentStateEnabled, pipelineColorBlendAttachmentStateDisabled };
 
             vk::PipelineColorBlendStateCreateInfo pipelineColorBlendStateCreateInfo(
                     vk::PipelineColorBlendStateCreateFlags(),  // flags
@@ -214,6 +226,9 @@ namespace Iris::Vulkan {
     }
 
     PipelineBuilder& PipelineBuilder::Clear() {
+        m_VertexInputBindingDescription = vk::VertexInputBindingDescription();
+        m_AttributeDescriptions.clear();
+
         for (auto& shader: m_VertexShaders) {
             m_Device.destroyShaderModule(shader);
         }

@@ -61,6 +61,7 @@ namespace Iris::Vulkan {
 
         std::unique_ptr<PipelineBuilder> m_PipelineBuilder;
         std::unique_ptr<PipelineBuilder::Pipeline> m_Pipeline;
+        std::unique_ptr<PipelineBuilder::Pipeline> m_BillboardPipeline;
 
         std::vector<Mesh> m_Meshes;
         std::vector<Texture<float>> m_Textures;

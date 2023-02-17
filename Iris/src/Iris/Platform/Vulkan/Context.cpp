@@ -67,6 +67,9 @@ namespace Iris::Vulkan {
     }
 
     void Context::SelectDevice() {
+        VkPhysicalDeviceFeatures features{};
+        features.independentBlend = true;
+
         VkPhysicalDeviceVulkan12Features features12{};
         features12.runtimeDescriptorArray = true;
         features12.descriptorBindingPartiallyBound = true;
@@ -87,6 +90,7 @@ namespace Iris::Vulkan {
                 .set_minimum_version(1, 3)
                 .require_dedicated_transfer_queue()
                 .set_required_features_12(features12)
+                .set_required_features(features)
                 .select();
         if (!phys) {
             Log::Core::Critical("Failed to select Vulkan Physical Device. Error: {}\n", phys.error().message());
