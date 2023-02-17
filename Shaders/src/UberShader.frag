@@ -41,11 +41,14 @@ vec3 PointLight(vec3 albedo, Light light, vec3 cameraPos) {
     vec3 lightDirection = normalize(lightVec);
     float diffuse = max(dot(inNormal, lightDirection), 0.f);
 
-    vec3 viewDirection = normalize(cameraPos - inPosition);
-    vec3 reflectionDirection = reflect(-lightDirection, viewDirection);
-    vec3 halfwayVec = normalize(viewDirection + lightDirection);
-    float specularAmount = pow(max(dot(inNormal, halfwayVec), 0), 8);
-    float specular = specularIntensity * specularAmount;
+    float specular = 0.f;
+    if (diffuse != 0.f) {
+        vec3 viewDirection = normalize(cameraPos - inPosition);
+        vec3 reflectionDirection = reflect(-lightDirection, viewDirection);
+        vec3 halfwayVec = normalize(viewDirection + lightDirection);
+        float specularAmount = pow(max(dot(inNormal, halfwayVec), 0), 8);
+        specular = specularIntensity * specularAmount;
+    }
 
     return albedo * light.color.rgb * (diffuse + specular) * intensity;
 }
@@ -54,11 +57,14 @@ vec3 DirectionalLight(vec3 albedo, Light light, vec3 cameraPos) {
     vec3 lightDirection = normalize(light.position.xyz);
     float diffuse = max(dot(inNormal, lightDirection), 0.f);
 
-    vec3 viewDirection = normalize(cameraPos - inPosition);
-    vec3 reflectionDirection = reflect(-lightDirection, viewDirection);
-    vec3 halfwayVec = normalize(viewDirection + lightDirection);
-    float specularAmount = pow(max(dot(inNormal, halfwayVec), 0), 8);
-    float specular = specularIntensity * specularAmount;
+    float specular = 0.f;
+    if (diffuse != 0.f) {
+        vec3 viewDirection = normalize(cameraPos - inPosition);
+        vec3 reflectionDirection = reflect(-lightDirection, viewDirection);
+        vec3 halfwayVec = normalize(viewDirection + lightDirection);
+        float specularAmount = pow(max(dot(inNormal, halfwayVec), 0), 8);
+        specular = specularIntensity * specularAmount;
+    }
 
     return albedo * light.color.rgb * (diffuse + specular);
 }
@@ -70,11 +76,14 @@ vec3 SpotLight(vec3 albedo, Light light, vec3 cameraPos) {
     vec3 lightDirection = normalize(light.position.xyz - inPosition);
     float diffuse = max(dot(inNormal, lightDirection), 0.f);
 
-    vec3 viewDirection = normalize(cameraPos - inPosition);
-    vec3 reflectionDirection = reflect(-lightDirection, viewDirection);
-    vec3 halfwayVec = normalize(viewDirection + lightDirection);
-    float specularAmount = pow(max(dot(inNormal, halfwayVec), 0), 8);
-    float specular = specularIntensity * specularAmount;
+    float specular = 0.f;
+    if (diffuse != 0.f) {
+        vec3 viewDirection = normalize(cameraPos - inPosition);
+        vec3 reflectionDirection = reflect(-lightDirection, viewDirection);
+        vec3 halfwayVec = normalize(viewDirection + lightDirection);
+        float specularAmount = pow(max(dot(inNormal, halfwayVec), 0), 8);
+        specular = specularIntensity * specularAmount;
+    }
 
     float angle = dot(vec3(0.f, -1.f, 0.f), -lightDirection);
     float intensity = clamp((angle - outerCone) / (innerCone - outerCone), 0.f, 1.f);
