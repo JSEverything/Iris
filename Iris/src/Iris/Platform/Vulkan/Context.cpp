@@ -44,7 +44,7 @@ namespace Iris::Vulkan {
                                     }
                 )
                 .request_validation_layers()
-                .require_api_version(1, 3)
+                .require_api_version(1, 2)
                 .build();
         if (!instance) {
             Log::Core::Critical("Failed to create Vulkan instance. Error: {}\n", instance.error().message());
@@ -87,7 +87,7 @@ namespace Iris::Vulkan {
         vkb::PhysicalDeviceSelector selector{ m_VKBInstance };
         auto phys = selector
                 .set_surface(m_Surface)
-                .set_minimum_version(1, 3)
+                .set_minimum_version(1, 2)
                 .require_dedicated_transfer_queue()
                 .set_required_features_12(features12)
                 .set_required_features(features)
