@@ -22,10 +22,9 @@ layout (location = 2) out vec2 outUV;
 
 void main() {
     vec4 locPos = pc.modelMat * vec4(inPos.xyz, 1.0);
-    vec4 locNormal = pc.modelMat * vec4(inNormal.xyz, 1.0);
 
     outPosition = locPos.xyz / locPos.w;
-    outNormal = locNormal.xyz / locNormal.w;
+    outNormal = inNormal.xyz;
     outUV = inUV;
 
     gl_Position = camera.viewProjection * locPos;

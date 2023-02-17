@@ -43,7 +43,8 @@ vec3 PointLight(vec3 albedo, Light light, vec3 cameraPos) {
 
     vec3 viewDirection = normalize(cameraPos - inPosition);
     vec3 reflectionDirection = reflect(-lightDirection, viewDirection);
-    float specularAmount = pow(max(dot(viewDirection, reflectionDirection), 0), 8);
+    vec3 halfwayVec = normalize(viewDirection + lightDirection);
+    float specularAmount = pow(max(dot(inNormal, halfwayVec), 0), 8);
     float specular = specularIntensity * specularAmount;
 
     return albedo * light.color.rgb * (diffuse + specular) * intensity;
@@ -55,7 +56,8 @@ vec3 DirectionalLight(vec3 albedo, Light light, vec3 cameraPos) {
 
     vec3 viewDirection = normalize(cameraPos - inPosition);
     vec3 reflectionDirection = reflect(-lightDirection, viewDirection);
-    float specularAmount = pow(max(dot(viewDirection, reflectionDirection), 0), 8);
+    vec3 halfwayVec = normalize(viewDirection + lightDirection);
+    float specularAmount = pow(max(dot(inNormal, halfwayVec), 0), 8);
     float specular = specularIntensity * specularAmount;
 
     return albedo * light.color.rgb * (diffuse + specular);
@@ -70,7 +72,8 @@ vec3 SpotLight(vec3 albedo, Light light, vec3 cameraPos) {
 
     vec3 viewDirection = normalize(cameraPos - inPosition);
     vec3 reflectionDirection = reflect(-lightDirection, viewDirection);
-    float specularAmount = pow(max(dot(viewDirection, reflectionDirection), 0), 8);
+    vec3 halfwayVec = normalize(viewDirection + lightDirection);
+    float specularAmount = pow(max(dot(inNormal, halfwayVec), 0), 8);
     float specular = specularIntensity * specularAmount;
 
     float angle = dot(vec3(0.f, -1.f, 0.f), -lightDirection);
@@ -79,7 +82,7 @@ vec3 SpotLight(vec3 albedo, Light light, vec3 cameraPos) {
     return albedo * light.color.rgb * (diffuse + specular) * intensity;
 }
 
-vec3 Phong(vec3 color) {
+vec3 BlinnPhong(vec3 color) {
     vec3 cameraPos = camera.position.xyz;
     vec3 normal = normalize(inNormal);
 
@@ -117,5 +120,5 @@ void main()
         color = vec4(texture(textures[pc.textureID], inUV).rgb, 1.f);
     }
 
-    outColor = vec4(Phong(color.rgb), 1.f);
+    outColor = vec4(BlinnPhong(color.rgb), 1.f);
 }
