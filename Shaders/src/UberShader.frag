@@ -28,10 +28,60 @@ layout (push_constant) uniform PushConstants1 {
     PushConstants pc;
 };
 
+float specularIntensity = 0.5f;
+float ambientLight = 0.1f;
+
+vec3 PointLight(vec3 albedo, Light light, vec3 cameraPos) {
+    vec3 lightVec = light.position.xyz - inPosition;
+    float dist = length(lightVec);
+    float a = 1.f; // attenuation parameters
+    float b = 2.f;
+    float intensity = 1.f / (a * dist * dist + b * dist + 1.f);
+
+    vec3 lightDirection = normalize(lightVec);
+    float diffuse = max(dot(inNormal, lightDirection), 0.f);
+
+    vec3 viewDirection = normalize(cameraPos - inPosition);
+    vec3 reflectionDirection = reflect(-lightDirection, viewDirection);
+    float specularAmount = pow(max(dot(viewDirection, reflectionDirection), 0), 8);
+    float specular = specularIntensity * specularAmount;
+
+    return albedo * light.color.rgb * (diffuse + specular) * intensity;
+}
+
+vec3 DirectionalLight(vec3 albedo, Light light, vec3 cameraPos) {
+    vec3 lightDirection = normalize(light.position.xyz);
+    float diffuse = max(dot(inNormal, lightDirection), 0.f);
+
+    vec3 viewDirection = normalize(cameraPos - inPosition);
+    vec3 reflectionDirection = reflect(-lightDirection, viewDirection);
+    float specularAmount = pow(max(dot(viewDirection, reflectionDirection), 0), 8);
+    float specular = specularIntensity * specularAmount;
+
+    return albedo * light.color.rgb * (diffuse + specular);
+}
+
+vec3 SpotLight(vec3 albedo, Light light, vec3 cameraPos) {
+    float outerCone = 0.9f;
+    float innerCone = 0.95f;
+
+    vec3 lightDirection = normalize(light.position.xyz - inPosition);
+    float diffuse = max(dot(inNormal, lightDirection), 0.f);
+
+    vec3 viewDirection = normalize(cameraPos - inPosition);
+    vec3 reflectionDirection = reflect(-lightDirection, viewDirection);
+    float specularAmount = pow(max(dot(viewDirection, reflectionDirection), 0), 8);
+    float specular = specularIntensity * specularAmount;
+
+    float angle = dot(vec3(0.f, -1.f, 0.f), -lightDirection);
+    float intensity = clamp((angle - outerCone) / (innerCone - outerCone), 0.f, 1.f);
+
+    return albedo * light.color.rgb * (diffuse + specular) * intensity;
+}
+
 vec3 Phong(vec3 color) {
     vec3 cameraPos = camera.position.xyz;
     vec3 normal = normalize(inNormal);
-    float specularIntensity = 0.5f;
 
     vec3 total = { 0.f, 0.f, 0.f };
 
@@ -39,39 +89,15 @@ vec3 Phong(vec3 color) {
         vec3 lightColor = lights[i].color.xyz;
         if (lights[i].flags.x == 0) // point
         {
-            vec3 lightDirection = normalize(lights[i].position.xyz - inPosition);
-            float diffuse = max(dot(inNormal, lightDirection), 0.f);
-
-            vec3 viewDirection = normalize(cameraPos - inPosition);
-            vec3 reflectionDirection = reflect(-lightDirection, viewDirection);
-            float specularAmount = pow(max(dot(viewDirection, reflectionDirection), 0), 8);
-            float specular = specularIntensity * specularAmount;
-
-            total += color * lightColor * (diffuse + specular);
+            total += PointLight(color, lights[i], cameraPos);
         }
         else if (lights[i].flags.x == 1) // directional
         {
-            vec3 lightDirection = normalize(- lights[i].position.xyz);
-            float diffuse = max(dot(inNormal, lightDirection), 0.f);
-
-            vec3 viewDirection = normalize(cameraPos - inPosition);
-            vec3 reflectionDirection = reflect(-lightDirection, viewDirection);
-            float specularAmount = pow(max(dot(viewDirection, reflectionDirection), 0), 8);
-            float specular = specularIntensity * specularAmount;
-
-            total += color * lightColor * (diffuse + specular);
+            total += DirectionalLight(color, lights[i], cameraPos);
         }
-        else if (lights[i].flags.x == 1) // spot
+        else if (lights[i].flags.x == 2) // spot
         {
-            vec3 lightDirection = normalize(lights[i].rotation.xyz);
-            float diffuse = max(dot(inNormal, lightDirection), 0.f);
-
-            vec3 viewDirection = normalize(cameraPos - inPosition);
-            vec3 reflectionDirection = reflect(-lightDirection, viewDirection);
-            float specularAmount = pow(max(dot(viewDirection, reflectionDirection), 0), 8);
-            float specular = specularIntensity * specularAmount;
-
-            total += color * lightColor * (diffuse + specular);
+            total += SpotLight(color, lights[i], cameraPos);
         }
     }
 
@@ -86,7 +112,7 @@ void main()
 
     ivec2 size = textureSize(textures[pc.textureID], 0);
     if (size.x + size.y <= 2) {
-        color = vec4(0.3f, 0.3f, 0.3f, 1.f); // empty texture
+        color = vec4(0.7f, 0.7f, 0.7f, 1.f); // empty texture
     } else {
         color = vec4(texture(textures[pc.textureID], inUV).rgb, 1.f);
     }

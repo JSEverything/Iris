@@ -14,18 +14,19 @@ namespace Iris {
 
         auto& floor = m_Scene->CreateObject();
         floor.AddComponent<Mesh>("../Assets/plane.obj");
-        floor.GetTransform().SetTranslation({ 0.f, -1.f, 0.f });
+        floor.GetTransform().SetTranslation({ 0.f, -0.5f, 0.f });
         m_Scene->AddObject(floor);
 
-        /*auto& axis = m_Scene->CreateObject();
+        auto& axis = m_Scene->CreateObject();
         axis.AddComponent<Mesh>("../Assets/Axis/axis.obj");
         axis.AddComponent<Material>("../Assets/Axis/albedo.png");
         axis.GetTransform().SetScale({ 0.3f, 0.3f, 0.3f });
-        m_Scene->AddObject(axis);*/
+        axis.GetTransform().SetTranslation({ -1.7f, 0.f, -7.3f });
+        m_Scene->AddObject(axis);
 
         auto& light = m_Scene->CreateObject();
         light.AddComponent<Light>(glm::vec3(1.f, 0.f, 0.f), LightType::POINT);
-        light.GetTransform().SetTranslation({ 0.f, 0.f, -3.f });
+        light.GetTransform().SetTranslation({ 0.f, 0.f, 5.f });
         m_Scene->AddObject(light);
 
         auto& light2 = m_Scene->CreateObject();
@@ -34,17 +35,28 @@ namespace Iris {
         m_Scene->AddObject(light2);
 
         auto& light3 = m_Scene->CreateObject();
-        light3.AddComponent<Light>(glm::vec3(0.f, 0.f, 1.f), LightType::SPOT);
-        light3.GetTransform().SetTranslation({ 5.f, 1.f, 7.f });
+        light3.AddComponent<Light>(glm::vec3(0.f, 0.f, 1.f), LightType::POINT);
+        light3.GetTransform().SetTranslation({ 1.5f, 1.f, 4.f });
         m_Scene->AddObject(light3);
 
         auto& light4 = m_Scene->CreateObject();
-        light4.AddComponent<Light>(glm::vec3(0.4f, 0.4f, 0.4f), LightType::DIRECTIONAL);
+        light4.AddComponent<Light>(glm::vec3(0.1f, 0.1f, 0.1f), LightType::DIRECTIONAL);
+        light4.GetTransform().SetTranslation({ 3.f, 1.f, 7.f });
         m_Scene->AddObject(light4);
+
+        auto& light5 = m_Scene->CreateObject();
+        light5.AddComponent<Light>(glm::vec3(0.6f, 0.6f, 0.6f), LightType::SPOT);
+        light5.GetTransform().SetTranslation({ -3.f, 5.f, -7.f });
+        m_Scene->AddObject(light5);
+
+        auto& light6 = m_Scene->CreateObject();
+        light6.AddComponent<Light>(glm::vec3(0.6f, 0.6f, 0.6f), LightType::SPOT);
+        light6.GetTransform().SetTranslation({ 3.f, 5.f, 7.f });
+        m_Scene->AddObject(light6);
 
         auto& monkey = m_Scene->CreateObject();
         monkey.AddComponent<Mesh>("../Assets/monkey-low.obj");
-        monkey.GetTransform().SetTranslation({ 3.f, 3.f, 3.f });
+        monkey.GetTransform().SetTranslation({ 1.f, 1.f, 3.f });
         m_Scene->AddObject(monkey);
     }
 

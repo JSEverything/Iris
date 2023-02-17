@@ -422,7 +422,7 @@ namespace Iris::Vulkan {
                     glm::vec3 translate, rotate, scale;
                     Math::DecomposeTransform(transform, translate, rotate, scale);
                     tc.SetTranslation(translate);
-                    tc.Rotate(glm::degrees(rotate - glm::radians(tc.GetRotation())));
+                    tc.Rotate(glm::degrees(rotate) - tc.GetRotation());
                     tc.SetScale(scale);
                 }
             }
@@ -502,7 +502,6 @@ namespace Iris::Vulkan {
                 auto& material = m_Scene->GetEntity(entity).GetComponent<Material>();
                 m_Textures.emplace_back(m_Ctx, m_UploadContext, material.getTexture(), 4);
                 m_Pipeline->UpdateImage(1, 0, m_Textures[m_Textures.size() - 1].GetDescriptor(), entity);
-                m_BillboardPipeline->UpdateImage(1, 0, m_Textures[m_Textures.size() - 1].GetDescriptor(), entity);
             }
 
             for (auto& light: m_Scene->GetEntity(entity).GetComponents<Iris::Light>()) {
