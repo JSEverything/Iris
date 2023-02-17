@@ -19,6 +19,8 @@ namespace Iris {
         void Rotate(const glm::vec3& offset);
 
         void Reset();
+
+        void RenderUI() override;
     private:
         glm::vec3 m_Translation{ 0.f };
         glm::vec3 m_Rotation{ 0.f };

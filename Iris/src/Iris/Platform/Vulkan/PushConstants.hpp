@@ -5,6 +5,6 @@ namespace Iris::Vulkan {
     struct PushConstants {
         glm::mat4 modelMat;
         uint32_t objectID;
-        //uint32_t materialID;
+        uint32_t textureID;
     };
 }

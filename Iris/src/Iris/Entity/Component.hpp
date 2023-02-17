@@ -13,6 +13,8 @@ namespace Iris {
         [[nodiscard]] Entity& GetParent() const;
 
         virtual void Update(float dt) {};
+
+        virtual void RenderUI() {};
     protected:
         size_t m_ParentId;
         std::shared_ptr<Scene> m_Scene;

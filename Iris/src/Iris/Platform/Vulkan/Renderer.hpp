@@ -9,6 +9,8 @@
 #include "Iris/Platform/Vulkan/UploadContext.hpp"
 #include "Iris/Platform/Vulkan/Texture.hpp"
 #include "Iris/Platform/Vulkan/CameraData.hpp"
+#include "Iris/Platform/Vulkan/LightData.hpp"
+#include "Iris/Entity/Components/Light.hpp"
 
 namespace Iris::Vulkan {
     class Renderer final : public Iris::Renderer {
@@ -58,6 +60,8 @@ namespace Iris::Vulkan {
         vk::Semaphore m_PresentSemaphore;
 
         std::unique_ptr<Buffer<CameraData>> m_CameraDataBuffer;
+        std::unique_ptr<Buffer<LightData>> m_LightDataBuffer;
+        std::unique_ptr<Buffer<Light>> m_LightStorageBuffer;
 
         std::unique_ptr<PipelineBuilder> m_PipelineBuilder;
         std::unique_ptr<PipelineBuilder::Pipeline> m_Pipeline;
@@ -65,10 +69,14 @@ namespace Iris::Vulkan {
 
         std::vector<Mesh> m_Meshes;
         std::vector<Texture<float>> m_Textures;
+        std::vector<size_t> m_Lights;
 
         std::shared_ptr<UploadContext> m_UploadContext;
 
         vk::DescriptorPool m_ImGuiPool;
+
+        size_t selectedEntity = 0;
+        int gizmoMode = -1;
     };
 }
 

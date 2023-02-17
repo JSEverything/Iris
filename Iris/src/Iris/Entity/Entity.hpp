@@ -5,6 +5,7 @@
 #include "Iris/Entity/Components/Camera.hpp"
 #include "Iris/Entity/Components/Material.hpp"
 #include "Iris/Entity/Components/Mesh.hpp"
+#include "Iris/Entity/Components/Light.hpp"
 
 namespace Iris {
     class Scene;
@@ -34,6 +35,7 @@ namespace Iris {
         }
 
         [[nodiscard]] size_t GetId() const { return m_Id; };
+        void RenderUI();
     private:
         template <class T>
         requires std::is_base_of_v<Component, T>
@@ -51,7 +53,8 @@ namespace Iris {
         ComponentStore<
                 Camera,
                 Material,
-                Mesh
+                Mesh,
+                Light
         > m_Components;
     };
 }

@@ -31,3 +31,20 @@ target_link_libraries(imgui PRIVATE
         Vulkan::Vulkan
         glfw
         )
+
+# ImGuizmo
+set(IMGUIZMO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ImGuizmo)
+#file(GLOB_RECURSE IMGUI_SRC ${IMGUI_DIR}/**.cpp)
+add_library(ImGuizmo STATIC)
+#target_sources(imgui PRIVATE ${IMGUI_SRC})
+target_sources(ImGuizmo PRIVATE
+        "${IMGUIZMO_DIR}/ImGuizmo.cpp"
+        )
+
+target_include_directories(ImGuizmo
+        PUBLIC ${IMGUIZMO_DIR}
+        )
+
+target_link_libraries(ImGuizmo PRIVATE
+        imgui
+        )

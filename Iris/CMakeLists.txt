@@ -23,6 +23,7 @@ target_link_libraries(Iris PUBLIC
         GLAD
         tinyobjloader
         imgui
+        ImGuizmo
         )
 target_precompile_headers(Iris PUBLIC src/pch.hpp)
 

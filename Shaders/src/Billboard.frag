@@ -24,11 +24,11 @@ void main()
 {
     outID = pc.objectID + 1;
 
-    ivec2 size = textureSize(textures[pc.objectID], 0);
+    ivec2 size = textureSize(textures[pc.textureID], 0);
     if (size.x + size.y <= 2) {
         outColor = vec4(0.7f, 0.f, 0.7f, 1.f); // empty texture
         return;
     }
-    outColor = texture(textures[pc.objectID], inUV).rgba;
+    outColor = texture(textures[pc.textureID], inUV).rgba;
     //if (outColor.a < 1.f) discard;
 }

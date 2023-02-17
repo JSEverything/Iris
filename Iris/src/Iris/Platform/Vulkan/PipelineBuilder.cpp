@@ -50,6 +50,14 @@ namespace Iris::Vulkan {
     }
 
     PipelineBuilder&
+    PipelineBuilder::AddStorageBuffer(uint32_t set, uint32_t binding, vk::ShaderStageFlags stage, uint32_t count) {
+        m_DescriptorSetLayoutBindings[set][binding] = vk::DescriptorSetLayoutBinding(
+                binding, vk::DescriptorType::eStorageBuffer, count, stage);
+
+        return *this;
+    }
+
+    PipelineBuilder&
     PipelineBuilder::AddImage(uint32_t set, uint32_t binding, vk::ShaderStageFlags stage, uint32_t count) {
         m_DescriptorSetLayoutBindings[set][binding] = vk::DescriptorSetLayoutBinding(
                 binding, vk::DescriptorType::eCombinedImageSampler, count, stage);

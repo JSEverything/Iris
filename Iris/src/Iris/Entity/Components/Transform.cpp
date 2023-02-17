@@ -2,6 +2,8 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
+#include "glm/gtc/type_ptr.hpp"
+#include <imgui.h>
 
 namespace Iris {
     const glm::vec3& Transform::GetTranslation() const {
@@ -46,5 +48,11 @@ namespace Iris {
         m_Translation = { 0.f, 0.f, 0.f };
         m_Rotation = { 0.f, 0.f, 0.f };
         m_Scale = { 1.f, 1.f, 1.f };
+    }
+
+    void Transform::RenderUI() {
+        ImGui::DragFloat3("Position", glm::value_ptr(m_Translation));
+        ImGui::DragFloat3("Rotation", glm::value_ptr(m_Rotation));
+        ImGui::DragFloat3("Scale", glm::value_ptr(m_Scale));
     }
 }

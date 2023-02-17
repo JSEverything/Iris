@@ -8,4 +8,16 @@ struct CameraData {
 struct PushConstants {
     mat4 modelMat;
     uint objectID;
+    uint textureID;
+};
+
+struct Light {
+    vec4 position;
+    vec4 rotation;
+    vec4 color;
+    uvec4 flags;
+};
+
+struct LightData {
+    uint count;
 };

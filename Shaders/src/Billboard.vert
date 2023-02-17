@@ -38,6 +38,7 @@ void main() {
     outPosition = locPos.xyz / locPos.w;
     outNormal = vec3(- camera.view[0][2], - camera.view[1][2], - camera.view[2][2]);
     outUV = squarePositions[gl_VertexIndex].xy + 0.5f;
+    outUV.y = 1 - outUV.y;
 
     gl_Position = camera.viewProjection * locPos;
 }

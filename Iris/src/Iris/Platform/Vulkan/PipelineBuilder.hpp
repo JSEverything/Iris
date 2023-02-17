@@ -12,6 +12,8 @@ namespace Iris::Vulkan {
         PipelineBuilder& AddVertexShader(std::string path);
         PipelineBuilder& AddFragmentShader(std::string path);
         PipelineBuilder& AddUniform(uint32_t set, uint32_t binding, vk::ShaderStageFlags stage, uint32_t count = 1);
+        PipelineBuilder&
+        AddStorageBuffer(uint32_t set, uint32_t binding, vk::ShaderStageFlags stage, uint32_t count = 1);
         PipelineBuilder& AddImage(uint32_t set, uint32_t binding, vk::ShaderStageFlags stage, uint32_t count = 1);
         PipelineBuilder& AddPushConstant(vk::ShaderStageFlags stage, size_t size);
         std::unique_ptr<Pipeline> Build(vk::RenderPass& renderPass);
@@ -24,7 +26,7 @@ namespace Iris::Vulkan {
         vk::Device m_Device;
         vk::DescriptorPool m_DescriptorPool;
         size_t m_PushConstantOffset = 0u;
-        
+
         vk::VertexInputBindingDescription m_VertexInputBindingDescription;
         std::vector<vk::VertexInputAttributeDescription> m_AttributeDescriptions;
 

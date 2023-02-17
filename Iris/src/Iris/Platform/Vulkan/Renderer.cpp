@@ -2,11 +2,14 @@
 #include <imgui_impl_vulkan.h>
 #include <imgui_impl_glfw.h>
 #include <imgui.h>
+#include <ImGuizmo.h>
 #include "Iris/Renderer/Vertex.hpp"
 #include "Iris/Platform/Vulkan/Util.hpp"
 #include "Iris/Platform/Vulkan/Texture.hpp"
 #include "Iris/Platform/Vulkan/PushConstants.hpp"
 #include "Iris/Util/Input.hpp"
+#include "glm/gtc/type_ptr.hpp"
+#include "Iris/Math/Math.hpp"
 
 namespace Iris::Vulkan {
     Renderer::Renderer(const std::shared_ptr<Window>& window) : Iris::Renderer(window) {
@@ -25,18 +28,32 @@ namespace Iris::Vulkan {
         InitImGui();
 
         Input::Get().on<Key>([&](int button, KeyMods mods) {
-            if (button != GLFW_MOUSE_BUTTON_1) return;
-            glm::uvec2 pos = Input::GetMousePos();
+            if (ImGui::GetIO().WantCaptureMouse) return;
+            if (Input::IsKeyPressed(GLFW_KEY_LEFT_ALT)) return;
+            if (button == GLFW_MOUSE_BUTTON_1) {
+                glm::uvec2 pos = Input::GetMousePos();
 
-            m_IDTexture->CopyToStagingBuffer();
-            auto data = m_IDTexture->MapStagingBuffer();
-            uint32_t id = data[pos.y * m_Size.x + pos.x];
-            Log::Core::Info("Pixel value: {}", id);
-            m_IDTexture->UnmapStagingBuffer();
+                m_IDTexture->CopyToStagingBuffer();
+                auto data = m_IDTexture->MapStagingBuffer();
+                uint32_t id = data[pos.y * m_Size.x + pos.x];
+                selectedEntity = id;
+                m_IDTexture->UnmapStagingBuffer();
+            } else if (button == GLFW_KEY_Q)
+                gizmoMode = -1;
+            else if (button == GLFW_KEY_W)
+                gizmoMode = 0;
+            else if (button == GLFW_KEY_E)
+                gizmoMode = 1;
+            else if (button == GLFW_KEY_R)
+                gizmoMode = 2;
         });
 
-        m_Textures.emplace_back(m_Ctx, m_UploadContext, "../Assets/Cube2.png", 4);
-        m_BillboardPipeline->UpdateImage(1, 0, m_Textures[m_Textures.size() - 1].GetDescriptor(), 0);
+        m_Textures.emplace_back(m_Ctx, m_UploadContext, "../Assets/Icons/LightPoint.png", 4);
+        m_Textures.emplace_back(m_Ctx, m_UploadContext, "../Assets/Icons/LightDirectional.png", 4);
+        m_Textures.emplace_back(m_Ctx, m_UploadContext, "../Assets/Icons/LightSpot.png", 4);
+        m_BillboardPipeline->UpdateImage(1, 0, m_Textures[m_Textures.size() - 3].GetDescriptor(), 0);
+        m_BillboardPipeline->UpdateImage(1, 0, m_Textures[m_Textures.size() - 2].GetDescriptor(), 1);
+        m_BillboardPipeline->UpdateImage(1, 0, m_Textures[m_Textures.size() - 1].GetDescriptor(), 2);
     }
 
     void Renderer::InitSwapchain() {
@@ -249,6 +266,10 @@ namespace Iris::Vulkan {
     void Renderer::InitUniformBuffer() {
         m_CameraDataBuffer = std::make_unique<Buffer<CameraData>>(
                 m_Ctx, vk::BufferUsageFlagBits::eUniformBuffer, CameraData{});
+        m_LightDataBuffer = std::make_unique<Buffer<LightData>>(
+                m_Ctx, vk::BufferUsageFlagBits::eUniformBuffer, LightData{});
+        m_LightStorageBuffer = std::make_unique<Buffer<Light>>(
+                m_Ctx, vk::BufferUsageFlagBits::eStorageBuffer, 500u);
     }
 
     void Renderer::InitPipelines() {
@@ -263,6 +284,8 @@ namespace Iris::Vulkan {
                 .AddFragmentShader("./Shaders/UberShader.frag.spv")
                 .AddPushConstant(shaderStagesVF, sizeof(PushConstants))
                 .AddUniform(0, 0, shaderStagesVF)                            // camera data
+                .AddUniform(0, 1, shaderStagesVF)                            // light meta
+                .AddStorageBuffer(0, 2, shaderStagesVF)                            // light array
                 .AddImage(1, 0, vk::ShaderStageFlagBits::eFragment, 1024);   // textures
         m_Pipeline = m_PipelineBuilder->Build(m_MainRenderPass);
 
@@ -275,6 +298,8 @@ namespace Iris::Vulkan {
         m_BillboardPipeline = m_PipelineBuilder->Build(m_MainRenderPass);
 
         m_Pipeline->UpdateBuffer(0, 0, m_CameraDataBuffer->GetDescriptorBufferInfo());
+        m_Pipeline->UpdateBuffer(0, 1, m_LightDataBuffer->GetDescriptorBufferInfo());
+        m_Pipeline->UpdateBuffer(0, 2, m_LightStorageBuffer->GetDescriptorBufferInfo());
         m_BillboardPipeline->UpdateBuffer(0, 0, m_CameraDataBuffer->GetDescriptorBufferInfo());
     }
 
@@ -289,8 +314,29 @@ namespace Iris::Vulkan {
         cameraData->viewProjection = camera.GetProjectionMatrix() * camera.GetViewMatrix();
         m_CameraDataBuffer->Unmap();
 
+        uint32_t count = glm::min(static_cast<uint32_t>(m_Lights.size()), 50u);
+
+        auto* lightData = m_LightDataBuffer->Map();
+        lightData->lightCount = count;
+        m_LightDataBuffer->Unmap();
+
+        auto* lights = m_LightStorageBuffer->Map();
+
+        for (uint32_t i = 0; i < count; ++i) {
+            auto& entity = m_Scene->GetEntity(m_Lights[i]);
+            auto& light = entity.GetComponent<Iris::Light>();
+
+            lights[i].position = glm::vec4(entity.GetTransform().GetTranslation(), 1.f);
+            lights[i].rotation = glm::vec4(glm::radians(entity.GetTransform().GetRotation()), 1.f);
+            lights[i].color = glm::vec4(light.color, 1.f);
+            lights[i].flags.x = static_cast<uint32_t>(light.type);
+        }
+
+        m_LightStorageBuffer->Unmap();
+
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+        ImGuizmo::BeginFrame();
 
         vk::Extent2D extent{ m_Window->GetWidth(), m_Window->GetHeight() };
         vk::ResultValue<uint32_t> currentBuffer = m_Ctx->GetDevice()
@@ -323,7 +369,8 @@ namespace Iris::Vulkan {
                     m_Pipeline->pipelineLayout, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
                     0u, PushConstants{
                             .modelMat = m_Scene->GetEntity(entityID).GetComponent<Iris::Mesh>().GetModelMatrix(),
-                            .objectID = static_cast<uint32_t>(entityID)
+                            .objectID = static_cast<uint32_t>(entityID),
+                            .textureID = static_cast<uint32_t>(entityID)
                     });
             mesh.Draw(m_CommandBuffer);
         }
@@ -333,15 +380,55 @@ namespace Iris::Vulkan {
                 vk::PipelineBindPoint::eGraphics, m_BillboardPipeline->pipelineLayout, 0,
                 m_BillboardPipeline->descriptorSets, nullptr);
 
+        for (auto& light: m_Lights) {
+            auto& entity = m_Scene->GetEntity(light);
 
-        m_CommandBuffer.pushConstants<PushConstants>(
-                m_Pipeline->pipelineLayout, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
-                0u, PushConstants{
-                        .modelMat = glm::translate(glm::mat4(1.f), glm::vec3(3.f, 3.f, 0.f)),
-                        .objectID = 0
-                });
-        m_CommandBuffer.draw(6, 1, 0, 0);
+            m_CommandBuffer.pushConstants<PushConstants>(
+                    m_Pipeline->pipelineLayout, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
+                    0u, PushConstants{
+                            .modelMat = glm::translate(glm::mat4(1.f), entity.GetTransform().GetTranslation()),
+                            .objectID = static_cast<uint32_t>(entity.GetId()),
+                            .textureID = static_cast<uint32_t>(entity.GetComponent<Iris::Light>().type)
+                    });
+            m_CommandBuffer.draw(6, 1, 0, 0);
+        }
 
+        ImGui::Begin("Selection");
+        ImGui::Text("Selected entity: %zu", selectedEntity);
+        //ImGui::Separator();
+
+        if (selectedEntity != 0) {
+            auto& entity = m_Scene->GetEntity(selectedEntity - 1);
+            entity.RenderUI();
+
+            if (gizmoMode != -1) {
+                ImGuizmo::SetOrthographic(false);
+                ImGuizmo::SetDrawlist(ImGui::GetForegroundDrawList());
+                ImGuizmo::SetRect(0.f, 0.f, 1600.f, 900.f);
+
+                glm::mat4 view = camera.GetViewMatrix();
+                glm::mat4 proj = camera.GetProjectionMatrix();
+                auto& tc = entity.GetTransform();
+                glm::mat4 transform = tc.GetMatrix();
+
+                ImGuizmo::OPERATION op = gizmoMode == 0
+                                         ? ImGuizmo::OPERATION::TRANSLATE : gizmoMode == 1
+                                                                            ? ImGuizmo::OPERATION::ROTATE
+                                                                            : ImGuizmo::OPERATION::SCALE;
+
+                ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(proj),
+                                     op, ImGuizmo::LOCAL, glm::value_ptr(transform));
+                if (ImGuizmo::IsUsing()) {
+                    glm::vec3 translate, rotate, scale;
+                    Math::DecomposeTransform(transform, translate, rotate, scale);
+                    tc.SetTranslation(translate);
+                    tc.Rotate(glm::degrees(rotate - glm::radians(tc.GetRotation())));
+                    tc.SetScale(scale);
+                }
+            }
+        }
+
+        ImGui::End();
         ImGui::Render();
         ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_CommandBuffer);
 
@@ -374,6 +461,7 @@ namespace Iris::Vulkan {
         m_Ctx->GetDevice().destroyFence(m_RenderFence);
 
         m_CameraDataBuffer.reset();
+        m_LightDataBuffer.reset();
 
         for (auto const& framebuffer: m_Framebuffers) {
             m_Ctx->GetDevice().destroyFramebuffer(framebuffer);
@@ -415,6 +503,10 @@ namespace Iris::Vulkan {
                 m_Textures.emplace_back(m_Ctx, m_UploadContext, material.getTexture(), 4);
                 m_Pipeline->UpdateImage(1, 0, m_Textures[m_Textures.size() - 1].GetDescriptor(), entity);
                 m_BillboardPipeline->UpdateImage(1, 0, m_Textures[m_Textures.size() - 1].GetDescriptor(), entity);
+            }
+
+            for (auto& light: m_Scene->GetEntity(entity).GetComponents<Iris::Light>()) {
+                m_Lights.emplace_back(light.GetParent().GetId());
             }
         });
     }
