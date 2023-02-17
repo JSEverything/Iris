@@ -1,5 +1,8 @@
 find_program(GLSL_VALIDATOR glslangValidator HINTS /usr/bin /usr/local/bin $ENV{VULKAN_SDK}/Bin/ $ENV{VULKAN_SDK}/Bin32/)
 
+## ensure output directory exists
+file(MAKE_DIRECTORY ${PROJECT_SOURCE_DIR}/Binaries/Shaders)
+
 ## find all the shader files under the shaders folder
 file(GLOB_RECURSE GLSL_SOURCE_FILES
         "src/*.frag"
