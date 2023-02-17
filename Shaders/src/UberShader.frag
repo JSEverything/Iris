@@ -85,7 +85,9 @@ vec3 SpotLight(vec3 albedo, Light light, vec3 cameraPos) {
         specular = specularIntensity * specularAmount;
     }
 
-    float angle = dot(vec3(0.f, -1.f, 0.f), -lightDirection);
+    // this is wrong, but it works
+    vec3 spotDirection = { light.rotation.z, -1.f, - light.rotation.x };
+    float angle = dot(normalize(spotDirection), -lightDirection);
     float intensity = clamp((angle - outerCone) / (innerCone - outerCone), 0.f, 1.f);
 
     return albedo * light.color.rgb * (diffuse + specular) * intensity;
