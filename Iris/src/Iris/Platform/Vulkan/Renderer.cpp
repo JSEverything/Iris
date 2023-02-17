@@ -397,14 +397,16 @@ namespace Iris::Vulkan {
         ImGui::Text("Selected entity: %zu", selectedEntity);
         //ImGui::Separator();
 
-        if (selectedEntity != 0) {
+        // selectedEntity is index + 1
+        if (selectedEntity != 0 && selectedEntity <= m_Scene->GetObjects().size()) {
             auto& entity = m_Scene->GetEntity(selectedEntity - 1);
             entity.RenderUI();
 
             if (gizmoMode != -1) {
                 ImGuizmo::SetOrthographic(false);
                 ImGuizmo::SetDrawlist(ImGui::GetForegroundDrawList());
-                ImGuizmo::SetRect(0.f, 0.f, 1600.f, 900.f);
+                ImGuizmo::SetRect(0.f, 0.f,
+                                  static_cast<float>(m_Size.x), static_cast<float>(m_Size.y));
 
                 glm::mat4 view = camera.GetViewMatrix();
                 glm::mat4 proj = camera.GetProjectionMatrix();
@@ -536,7 +538,7 @@ namespace Iris::Vulkan {
         t.PhysicalDevice = &*m_Ctx->GetPhysDevice();
         t.Queue = &*m_Ctx->GetGraphicsQueue();
         t.MinImageCount = 2;
-        t.ImageCount = m_SwapchainImages.size();
+        t.ImageCount = glm::max(2LLu, m_SwapchainImages.size());
         t.QueueFamily = m_Ctx->GetGraphicsQueueFamilyIndex();
         t.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
